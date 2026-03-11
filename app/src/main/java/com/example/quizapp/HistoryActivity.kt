@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.quizapp.data.QuizData
 import com.example.quizapp.model.ExamType
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -71,8 +72,14 @@ class HistoryActivity : AppCompatActivity() {
             // 試験種別・年度ラベル
             val examLabel = if (entry.examType.isNotEmpty()) {
                 try {
-                    val yearStr = if (entry.year > 0) " ${entry.year}年" else " 全年度"
-                    ExamType.valueOf(entry.examType).label + yearStr
+                    val et = ExamType.valueOf(entry.examType)
+                    val termStr = if (entry.year > 0) {
+                        val qs = QuizData.getQuestionsByExamTypeAndYear(
+                            this@HistoryActivity, et, entry.year
+                        )
+                        " " + (qs.firstOrNull()?.periodLabel ?: "${entry.year}年")
+                    } else " 全年度"
+                    et.label + termStr
                 } catch (e: Exception) { "" }
             } else ""
 

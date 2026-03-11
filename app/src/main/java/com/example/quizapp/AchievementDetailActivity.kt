@@ -34,9 +34,9 @@ class AchievementDetailActivity : AppCompatActivity() {
         val examType     = try { ExamType.valueOf(examTypeName) } catch (e: Exception) { return }
 
         val questions = if (year > 0) {
-            QuizData.getQuestionsByExamTypeAndYear(examType, year)
+            QuizData.getQuestionsByExamTypeAndYear(this, examType, year)
         } else {
-            QuizData.getQuestionsByExamType(examType)
+            QuizData.getQuestionsByExamType(this, examType)
         }
         val results  = QuizStorage.loadResults(this)
         val ids      = questions.map { it.id }.toSet()
