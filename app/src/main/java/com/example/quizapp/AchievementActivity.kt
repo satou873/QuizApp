@@ -45,7 +45,7 @@ class AchievementActivity : AppCompatActivity() {
         })
 
         ExamType.values().forEach { examType ->
-            val allQuestions = QuizData.getQuestionsByExamType(examType)
+            val allQuestions = QuizData.getQuestionsByExamType(this, examType)
             if (allQuestions.isEmpty()) return@forEach
 
             root.addView(makeSectionHeader("📋 ${examType.label}"))
@@ -54,10 +54,10 @@ class AchievementActivity : AppCompatActivity() {
             addAchievementRow(root, results, examType, allQuestions, "全年度まとめ", null)
 
             // 年度別
-            val years = QuizData.getYearsByExamType(examType)
-            years.forEach { year ->
-                val yearQs = QuizData.getQuestionsByExamTypeAndYear(examType, year)
-                addAchievementRow(root, results, examType, yearQs, "${year}年", year)
+            val terms = QuizData.getTermsByExamType(this, examType)
+            terms.forEach { (yr, termLabel) ->
+                val yearQs = QuizData.getQuestionsByExamTypeAndYear(this, examType, yr)
+                addAchievementRow(root, results, examType, yearQs, termLabel, yr)
             }
         }
 

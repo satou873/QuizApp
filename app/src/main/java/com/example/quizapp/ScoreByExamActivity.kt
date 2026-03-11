@@ -63,12 +63,12 @@ class ScoreByExamActivity : AppCompatActivity() {
                 addSummaryRow(root, results, examType, allQuestions, "全年度まとめ", null)
 
                 // 年度別行
-                val years = QuizData.getYearsByExamType(this, examType)
-                years.forEach { year ->
-                    val yearQs  = QuizData.getQuestionsByExamTypeAndYear(this, examType, year)
+                val terms = QuizData.getTermsByExamType(this, examType)
+                terms.forEach { (yr, termLabel) ->
+                    val yearQs  = QuizData.getQuestionsByExamTypeAndYear(this, examType, yr)
                     val yearIds = yearQs.map { it.id }.toSet()
                     if (!results.any { it.questionId in yearIds }) return@forEach
-                    addSummaryRow(root, results, examType, yearQs, "${year}年", year)
+                    addSummaryRow(root, results, examType, yearQs, termLabel, yr)
                 }
             }
         }

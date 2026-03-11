@@ -42,8 +42,12 @@ class HistoryDetailActivity : AppCompatActivity() {
             .format(Date(timestamp))
         val examLabel = if (examTypeName.isNotEmpty()) {
             try {
-                val yearStr = if (year > 0) " ${year}年" else " 全年度"
-                ExamType.valueOf(examTypeName).label + yearStr
+                val et = ExamType.valueOf(examTypeName)
+                val termStr = if (year > 0) {
+                    val qs = QuizData.getQuestionsByExamTypeAndYear(this, et, year)
+                    " " + (qs.firstOrNull()?.periodLabel ?: "${year}年")
+                } else " 全年度"
+                et.label + termStr
             } catch (e: Exception) { "" }
         } else ""
         tvTitle.text   = if (examLabel.isNotEmpty()) "$examLabel｜$date" else date

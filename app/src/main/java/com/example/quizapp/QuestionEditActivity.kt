@@ -209,16 +209,16 @@ class QuestionEditActivity : AppCompatActivity() {
             }
         })
 
-        val years = QuizData.getYearsByExamType(this, currentExamType)
-        years.forEach { year ->
+        val terms = QuizData.getTermsByExamType(this, currentExamType)
+        terms.forEach { (yr, termLabel) ->
             yearRow.addView(Button(this).apply {
-                text     = "${year}年"
+                text     = termLabel
                 textSize = 12f
                 setTextColor(Color.WHITE)
                 backgroundTintList = android.content.res.ColorStateList.valueOf(
                     Color.parseColor("#FF9800")
                 )
-                alpha = if (currentYear == year) 1.0f else 0.5f
+                alpha = if (currentYear == yr) 1.0f else 0.5f
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -227,7 +227,7 @@ class QuestionEditActivity : AppCompatActivity() {
                 layoutParams = lp
                 setPadding(20, 20, 20, 20)
                 setOnClickListener {
-                    currentYear = year
+                    currentYear = yr
                     rebuildYearRow()
                     refreshList()
                 }
