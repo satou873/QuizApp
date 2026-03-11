@@ -639,25 +639,20 @@ class WordBookActivity : AppCompatActivity() {
             spinnerCategory.setSelection(idx)
         }
 
-        // ★ 初期化フラグ：true の間は onItemSelected を無視する
-        var isInitializing = true
+        // 既存カテゴリを保持（初期表示で正しく選択するために使用）
+        var pendingCategory: String? = existing?.category
 
-        // ★ リスナーを先に設定（初期化中は無視される）
         spinnerExam.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>, view: android.view.View?, position: Int, id: Long
             ) {
-                if (isInitializing) return   // 初期化中の自動コールを無視
-                applyCategoriesToSpinner(position)
+                // pendingCategory が非nullの場合は初回呼び出し：既存カテゴリを復元
+                val preselect = pendingCategory ?: ""
+                pendingCategory = null  // 次回以降はリセット（ユーザー操作時は空文字）
+                applyCategoriesToSpinner(position, preselect)
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
-
-        // ★ 初期表示：既存カテゴリを正しく選択
-        applyCategoriesToSpinner(defaultExamIndex, existing?.category ?: "")
-
-        // ★ 初期化完了：以降の onItemSelected は有効になる
-        isInitializing = false
 
         // 関連問題ID
         dialogView.addView(lbl("関連問題ID（カンマ区切り　空欄=全問題に表示）"))
