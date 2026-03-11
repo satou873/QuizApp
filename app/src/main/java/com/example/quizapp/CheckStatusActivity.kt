@@ -47,7 +47,15 @@ class CheckStatusActivity : AppCompatActivity() {
         }
         allResults = QuizStorage.loadResults(this)
 
-        val yearLabel = if (year > 0) "${year}年" else "全年度"
+        val termExtra = intent.getStringExtra("TERM")
+        val yearLabel = when {
+            termExtra != null -> termExtra
+            year > 0 -> QuizData.getTermsByExamType(this, examType)
+                .find { it.first == year }?.second
+                ?: allQuestions.firstOrNull()?.periodLabel
+                ?: "${year}年"
+            else -> "全年度"
+        }
 
         val scroll = ScrollView(this)
         root = LinearLayout(this).apply {
@@ -168,9 +176,9 @@ class CheckStatusActivity : AppCompatActivity() {
             })
 
             // 年度別ボタン（ユーザー追加問題含む）
-            QuizData.getYearsByExamType(this, examType).forEach { year ->
-                root.addView(makeSelectButton("📅 ${year}年", "#2196F3") {
-                    goToDetail(examType, year)
+            QuizData.getTermsByExamType(this, examType).forEach { (yr, termLabel) ->
+                root.addView(makeSelectButton("📅 $termLabel", "#2196F3") {
+                    goToDetail(examType, yr, termLabel)
                 })
             }
         }
@@ -212,10 +220,11 @@ class CheckStatusActivity : AppCompatActivity() {
         }
     }
 
-    private fun goToDetail(examType: ExamType, year: Int) {
+    private fun goToDetail(examType: ExamType, year: Int, term: String? = null) {
         val intent = Intent(this, CheckStatusActivity::class.java)
         intent.putExtra("EXAM_TYPE", examType.name)
         intent.putExtra("YEAR", year)
+        if (term != null) intent.putExtra("TERM", term)
         startActivity(intent)
     }
 
