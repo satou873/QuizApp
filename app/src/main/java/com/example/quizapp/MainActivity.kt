@@ -2,6 +2,7 @@ package com.example.quizapp
 
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
@@ -10,8 +11,11 @@ import android.text.style.ClickableSpan
 import android.text.style.ForegroundColorSpan
 import android.text.style.UnderlineSpan
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -26,12 +30,15 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var viewModel: QuizViewModel
 
+    private lateinit var scrollQuestion: ScrollView
     private lateinit var tvQuestion: TextView
     private lateinit var tvQuestionNumber: TextView
     private lateinit var tvAnswerResult: TextView
     private lateinit var tvExplanation: TextView
     private lateinit var layoutExplanation: LinearLayout
     private lateinit var layoutCheckLevel: LinearLayout
+    private lateinit var ivQuestionImage: ImageView
+    private lateinit var btnQuestionPdf: Button
     private lateinit var btnChoice0: Button
     private lateinit var btnChoice1: Button
     private lateinit var btnChoice2: Button
@@ -65,12 +72,15 @@ class MainActivity : AppCompatActivity() {
         val factory = QuizViewModelFactory(this, questionIds, startIndex)
         viewModel = ViewModelProvider(this, factory)[QuizViewModel::class.java]
 
+        scrollQuestion    = findViewById(R.id.scrollQuestion)
         tvQuestion        = findViewById(R.id.tvQuestion)
         tvQuestionNumber  = findViewById(R.id.tvQuestionNumber)
         tvAnswerResult    = findViewById(R.id.tvAnswerResult)
         tvExplanation     = findViewById(R.id.tvExplanation)
         layoutExplanation = findViewById(R.id.layoutExplanation)
         layoutCheckLevel  = findViewById(R.id.layoutCheckLevel)
+        ivQuestionImage   = findViewById(R.id.ivQuestionImage)
+        btnQuestionPdf    = findViewById(R.id.btnQuestionPdf)
         btnChoice0        = findViewById(R.id.btnChoice0)
         btnChoice1        = findViewById(R.id.btnChoice1)
         btnChoice2        = findViewById(R.id.btnChoice2)
@@ -83,6 +93,21 @@ class MainActivity : AppCompatActivity() {
         btnCheckForgot    = findViewById(R.id.btnCheckForgot)
         btnSave           = findViewById(R.id.btnSave)
         btnHome           = findViewById(R.id.btnHome)
+
+        // 問題文スクロールエリアの高さを画面の約40%に制限
+        scrollQuestion.viewTreeObserver.addOnGlobalLayoutListener(
+            object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    scrollQuestion.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    val maxHeight = (resources.displayMetrics.heightPixels * 0.40).toInt()
+                    if (scrollQuestion.measuredHeight > maxHeight) {
+                        val lp = scrollQuestion.layoutParams
+                        lp.height = maxHeight
+                        scrollQuestion.layoutParams = lp
+                    }
+                }
+            }
+        )
 
         val choiceButtons = listOf(btnChoice0, btnChoice1, btnChoice2, btnChoice3)
 
@@ -145,6 +170,44 @@ class MainActivity : AppCompatActivity() {
             currentQuestionId         = question.id
             tvQuestion.text           = question.questionText
             tvQuestion.movementMethod = null
+
+            // 画像/PDF添付の表示
+            val uri = question.imageUriString
+            ivQuestionImage.visibility  = View.GONE
+            btnQuestionPdf.visibility   = View.GONE
+            if (uri.isNotEmpty()) {
+                val extension = uri.substringAfterLast('.', "").lowercase()
+                when {
+                    extension in listOf("jpg", "jpeg", "png", "webp") -> {
+                        try {
+                            ivQuestionImage.setImageURI(Uri.parse(uri))
+                            ivQuestionImage.visibility = View.VISIBLE
+                        } catch (_: Exception) {}
+                    }
+                    extension == "pdf" -> {
+                        btnQuestionPdf.visibility = View.VISIBLE
+                        btnQuestionPdf.setOnClickListener {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW)
+                                intent.setDataAndType(Uri.parse(uri), "application/pdf")
+                                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                startActivity(intent)
+                            } catch (_: Exception) {
+                                android.widget.Toast.makeText(
+                                    this, "PDFを開くアプリが見つかりません", android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                    else -> {
+                        // content:// URI など拡張子不明の場合は画像として試みる
+                        try {
+                            ivQuestionImage.setImageURI(Uri.parse(uri))
+                            ivQuestionImage.visibility = View.VISIBLE
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
 
             choiceButtons.forEachIndexed { index, button ->
                 button.text = question.choices[index]

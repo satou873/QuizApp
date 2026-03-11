@@ -10,8 +10,10 @@ import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.quizapp.data.QuizData
+import com.example.quizapp.model.CheckLevel
 import com.example.quizapp.model.ExamType
 import com.example.quizapp.model.Question
+import com.example.quizapp.model.QuizResult
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,16 +50,18 @@ class HistoryDetailActivity : AppCompatActivity() {
         val pct = if (total > 0) (score * 100 / total) else 0
         tvSummary.text = "スコア：$score / $total 問正解（$pct%）"
 
-        // 問題リスト
+        // 問題リスト（内蔵＋ユーザー追加を両方検索）
+        val allQuestions = QuizData.questions + QuestionStorage.loadQuestions(this)
         val questions = questionIds.mapNotNull { id ->
-            QuizData.questions.find { it.id == id }
+            allQuestions.find { it.id == id }
         }
+        val results = QuizStorage.loadResults(this)
 
         if (questions.isEmpty()) {
             tvEmpty.visibility  = View.VISIBLE
             listView.visibility = View.GONE
         } else {
-            listView.adapter = QuestionListAdapter(questions)
+            listView.adapter = QuestionListAdapter(questions, results)
             listView.setOnItemClickListener { _, _, position, _ ->
                 val q = questions[position]
                 showQuestionDialog(q)
@@ -89,7 +93,8 @@ class HistoryDetailActivity : AppCompatActivity() {
     }
 
     inner class QuestionListAdapter(
-        private val questions: List<Question>
+        private val questions: List<Question>,
+        private val results:   List<QuizResult>
     ) : BaseAdapter() {
 
         override fun getCount() = questions.size
@@ -100,11 +105,19 @@ class HistoryDetailActivity : AppCompatActivity() {
             val view = convertView ?: LayoutInflater.from(this@HistoryDetailActivity)
                 .inflate(R.layout.item_history_question, parent, false)
 
-            val q = questions[position]
-            view.findViewById<TextView>(R.id.tvQNumber).text = "Q${q.id}"
-            view.findViewById<TextView>(R.id.tvQText).text   = q.questionText
-            view.findViewById<TextView>(R.id.tvQAnswer).text =
+            val q      = questions[position]
+            val result = results.find { it.questionId == q.id }
+            val level  = result?.checkLevel ?: CheckLevel.UNCHECKED
+
+            view.findViewById<TextView>(R.id.tvQNumber).text     = "Q${q.id}"
+            view.findViewById<TextView>(R.id.tvQText).text       = q.questionText
+            view.findViewById<TextView>(R.id.tvQAnswer).text     =
                 "正解：${q.choices[q.correctAnswerIndex]}"
+            view.findViewById<TextView>(R.id.tvCheckLevel).apply {
+                text      = level.emoji
+                textSize  = 18f
+                setTextColor(android.graphics.Color.parseColor(level.color))
+            }
             return view
         }
     }

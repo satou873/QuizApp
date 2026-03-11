@@ -10,6 +10,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.quizapp.data.QuizData
+import com.example.quizapp.model.CheckLevel
 import com.example.quizapp.model.ExamType
 import com.example.quizapp.model.Question
 import com.example.quizapp.model.QuizResult
@@ -34,9 +35,9 @@ class ScoreYearDetailActivity : AppCompatActivity() {
         val examType     = try { ExamType.valueOf(examTypeName) } catch (e: Exception) { return }
 
         val questions = if (year > 0) {
-            QuizData.getQuestionsByExamTypeAndYear(examType, year)
+            QuizData.getQuestionsByExamTypeAndYear(this, examType, year)
         } else {
-            QuizData.getQuestionsByExamType(examType)
+            QuizData.getQuestionsByExamType(this, examType)
         }
         val results  = QuizStorage.loadResults(this)
         val ids      = questions.map { it.id }.toSet()
@@ -131,7 +132,8 @@ class ScoreYearDetailActivity : AppCompatActivity() {
         question: Question,
         result: QuizResult
     ) {
-        val pct = (result.accuracy * 100).toInt()
+        val pct   = (result.accuracy * 100).toInt()
+        val level = result.checkLevel
 
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -146,13 +148,22 @@ class ScoreYearDetailActivity : AppCompatActivity() {
             layoutParams = lp
         }
 
+        // チェックレベルバッジ
+        row.addView(TextView(this).apply {
+            text     = level.emoji
+            textSize = 16f
+            setTextColor(Color.parseColor(level.color))
+            gravity  = Gravity.CENTER
+            width    = 40
+        })
+
         // Q番号
         row.addView(TextView(this).apply {
             text     = "Q${question.id}"
             textSize = 13f
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setTextColor(Color.parseColor("#2196F3"))
-            width    = 70
+            width    = 60
             gravity  = Gravity.CENTER
         })
 
@@ -179,7 +190,7 @@ class ScoreYearDetailActivity : AppCompatActivity() {
                 else      -> "#F44336"
             }))
             gravity  = Gravity.END
-            width    = 70
+            width    = 60
         })
 
         row.setOnClickListener { showQuestionDialog(question, result) }

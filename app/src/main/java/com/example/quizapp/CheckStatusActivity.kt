@@ -41,9 +41,9 @@ class CheckStatusActivity : AppCompatActivity() {
         }
 
         allQuestions = if (year > 0) {
-            QuizData.getQuestionsByExamTypeAndYear(examType, year)
+            QuizData.getQuestionsByExamTypeAndYear(this, examType, year)
         } else {
-            QuizData.getQuestionsByExamType(examType)
+            QuizData.getQuestionsByExamType(this, examType)
         }
         allResults = QuizStorage.loadResults(this)
 
@@ -142,7 +142,7 @@ class CheckStatusActivity : AppCompatActivity() {
         })
 
         ExamType.values().forEach { examType ->
-            val allQs = QuizData.getQuestionsByExamType(examType)
+            val allQs = QuizData.getQuestionsByExamType(this, examType)
             if (allQs.isEmpty()) return@forEach
 
             // 試験種別ヘッダー
@@ -167,8 +167,8 @@ class CheckStatusActivity : AppCompatActivity() {
                 goToDetail(examType, -1)
             })
 
-            // 年度別ボタン
-            QuizData.getYearsByExamType(examType).forEach { year ->
+            // 年度別ボタン（ユーザー追加問題含む）
+            QuizData.getYearsByExamType(this, examType).forEach { year ->
                 root.addView(makeSelectButton("📅 ${year}年", "#2196F3") {
                     goToDetail(examType, year)
                 })

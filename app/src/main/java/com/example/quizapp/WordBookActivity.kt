@@ -84,10 +84,8 @@ class WordBookActivity : AppCompatActivity() {
     data class SpinnerItem(val label: String, val examType: ExamType?)
     private val spinnerItems = listOf(
         SpinnerItem("全試験共通", null),
-        SpinnerItem("無線工学A",  ExamType.ENGINEERING_A),
-        SpinnerItem("無線工学B",  ExamType.ENGINEERING_B),
-        SpinnerItem("法規A",      ExamType.LAW_A),
-        SpinnerItem("法規B",      ExamType.LAW_B)
+        SpinnerItem("無線工学",   ExamType.ENGINEERING_A),   // 無線工学A/Bをまとめて「無線工学」
+        SpinnerItem("法規",       ExamType.LAW_A)             // 法規A/Bをまとめて「法規」
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -523,10 +521,10 @@ class WordBookActivity : AppCompatActivity() {
             lp.topMargin = 8; layoutParams = lp
         }
         val tagLabel = when (entry.examType) {
-            ExamType.ENGINEERING_A.name -> Pair("無線工学A", "#1565C0")
-            ExamType.ENGINEERING_B.name -> Pair("無線工学B", "#1976D2")
-            ExamType.LAW_A.name         -> Pair("法規A",    "#6A1B9A")
-            ExamType.LAW_B.name         -> Pair("法規B",    "#7B1FA2")
+            ExamType.ENGINEERING_A.name,
+            ExamType.ENGINEERING_B.name -> Pair("無線工学", "#1565C0")
+            ExamType.LAW_A.name,
+            ExamType.LAW_B.name         -> Pair("法規",    "#6A1B9A")
             else                        -> Pair("全試験共通", "#607D8B")
         }
         tagRow.addView(makeTag(tagLabel.first, tagLabel.second))
@@ -612,8 +610,11 @@ class WordBookActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         }
-        val defaultExamIndex = spinnerItems.indexOfFirst {
-            it.examType?.name == existing?.examType }.coerceAtLeast(0)
+        val defaultExamIndex = when (existing?.examType) {
+            ExamType.ENGINEERING_A.name, ExamType.ENGINEERING_B.name -> 1  // 無線工学
+            ExamType.LAW_A.name, ExamType.LAW_B.name                 -> 2  // 法規
+            else                                                      -> 0  // 全試験共通
+        }
         // ★ setSelectionはリスナー設定より先に行う
         spinnerExam.setSelection(defaultExamIndex)
         dialogView.addView(spinnerExam)
