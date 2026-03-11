@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🏆 達成度"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- 総合メッセージ -->
+        <TextView
+            android:id="@+id/tvMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="まだ挑戦していません！"
+            android:textSize="18sp"
+            android:textColor="#333333"
+            android:gravity="center"
+            android:padding="16dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- 進捗セクション -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📊 進捗"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="12dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:id="@+id/tvAnsweredCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="回答済み：0 / 0 問（0%）"
+                android:textSize="15sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="8dp"/>
+
+            <ProgressBar
+                android:id="@+id/progressAnswered"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="16dp"
+                android:progressTint="#2196F3"
+                android:layout_marginBottom="16dp"/>
+
+            <TextView
+                android:id="@+id/tvMasteredCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💪 覚えた：0 問（0%）"
+                android:textSize="15sp"
+                android:textColor="#333333"
+                android:layout_marginBottom="8dp"/>
+
+            <ProgressBar
+                android:id="@+id/progressMastered"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="16dp"
+                android:progressTint="#4CAF50"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvUnansweredCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="❓ 未回答：0 問"
+                android:textSize="15sp"
+                android:textColor="#888888"/>
+
+        </LinearLayout>
+
+        <!-- チェック内訳 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📝 チェック内訳"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="12dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:id="@+id/tvCheckPerfect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💪 覚えた：0 問"
+                android:textSize="16sp"
+                android:textColor="#4CAF50"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvCheckGood"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="😊 まあまあ：0 問"
+                android:textSize="16sp"
+                android:textColor="#2196F3"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvCheckPoor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🤔 微妙：0 問"
+                android:textSize="16sp"
+                android:textColor="#FF9800"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvCheckForgot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="😢 忘れた：0 問"
+                android:textSize="16sp"
+                android:textColor="#F44336"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvCheckUnchecked"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="❓ 未チェック：0 問"
+                android:textSize="16sp"
+                android:textColor="#999999"/>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="← 戻る"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:backgroundTint="#607D8B"
+            android:textColor="#FFFFFF"/>
+
+    </LinearLayout>
+</ScrollView>

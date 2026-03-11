@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.QuizApp">
+
+        <activity android:name=".HomeActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".ExamSelectActivity"        android:exported="false"/>
+        <activity android:name=".YearSelectActivity"        android:exported="false"/>
+        <activity android:name=".MainActivity"              android:exported="false"/>
+        <activity android:name=".ResultActivity"            android:exported="false"/>
+        <activity android:name=".ProfileActivity"           android:exported="false"/>
+        <activity android:name=".CheckStatusActivity"       android:exported="false"/>
+        <activity android:name=".HistoryActivity"           android:exported="false"/>
+        <activity android:name=".HistoryDetailActivity"     android:exported="false"/>
+        <activity android:name=".AchievementActivity"       android:exported="false"/>
+        <activity android:name=".AchievementDetailActivity" android:exported="false"/>
+        <activity android:name=".ScoreByExamActivity"       android:exported="false"/>
+        <activity android:name=".ScoreYearDetailActivity"   android:exported="false"/>
+        <activity android:name=".WordBookActivity"          android:exported="false"/>
+        <activity android:name=".QuestionEditActivity"      android:exported="false"/>
+        <activity android:name=".FlashCardSelectActivity"   android:exported="false"/>
+        <activity android:name=".FlashCardActivity"         android:exported="false"/>
+
+    </application>
+
+</manifest>

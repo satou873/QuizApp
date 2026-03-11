@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
+
+        <!-- タイトル -->
+        <TextView
+            android:id="@+id/tvExamTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="無線工学A"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/tvExamSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="年度を選択してください"
+            android:textSize="14sp"
+            android:textColor="#888888"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- 全年度ボタン -->
+        <Button
+            android:id="@+id/btnAllYear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🗂️ 全年度まとめて解く"
+            android:textSize="17sp"
+            android:padding="18dp"
+            android:backgroundTint="#9C27B0"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="━━  年度別  ━━"
+            android:textSize="14sp"
+            android:textColor="#AAAAAA"
+            android:gravity="center"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- 年度ボタンは動的生成 -->
+        <LinearLayout
+            android:id="@+id/layoutYearButtons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp"/>
+
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="← 戻る"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:backgroundTint="#607D8B"
+            android:textColor="#FFFFFF"/>
+
+    </LinearLayout>
+</ScrollView>
