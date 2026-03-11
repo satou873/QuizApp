@@ -50,7 +50,7 @@ class ScoreByExamActivity : AppCompatActivity() {
             })
         } else {
             ExamType.values().forEach { examType ->
-                val allQuestions = QuizData.getQuestionsByExamType(examType)
+                val allQuestions = QuizData.getQuestionsByExamType(this, examType)
                 if (allQuestions.isEmpty()) return@forEach
                 val ids       = allQuestions.map { it.id }.toSet()
                 val hasResult = results.any { it.questionId in ids }
@@ -63,9 +63,9 @@ class ScoreByExamActivity : AppCompatActivity() {
                 addSummaryRow(root, results, examType, allQuestions, "全年度まとめ", null)
 
                 // 年度別行
-                val years = QuizData.getYearsByExamType(examType)
+                val years = QuizData.getYearsByExamType(this, examType)
                 years.forEach { year ->
-                    val yearQs  = QuizData.getQuestionsByExamTypeAndYear(examType, year)
+                    val yearQs  = QuizData.getQuestionsByExamTypeAndYear(this, examType, year)
                     val yearIds = yearQs.map { it.id }.toSet()
                     if (!results.any { it.questionId in yearIds }) return@forEach
                     addSummaryRow(root, results, examType, yearQs, "${year}年", year)

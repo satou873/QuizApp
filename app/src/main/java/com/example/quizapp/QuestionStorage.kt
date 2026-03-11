@@ -8,8 +8,9 @@ import org.json.JSONObject
 
 object QuestionStorage {
 
-    private const val PREF_NAME   = "question_prefs"
-    private const val KEY_QUESTIONS = "user_questions"
+    private const val PREF_NAME        = "question_prefs"
+    private const val KEY_QUESTIONS    = "user_questions"
+    private const val KEY_DELETED_IDS  = "deleted_question_ids"
 
     // 保存済み問題を全取得
     fun loadQuestions(context: Context): List<Question> {
@@ -28,7 +29,9 @@ object QuestionStorage {
                     correctAnswerIndex = obj.getInt("correctAnswerIndex"),
                     explanation        = obj.getString("explanation"),
                     examType           = ExamType.valueOf(obj.getString("examType")),
-                    year               = obj.getInt("year")
+                    year               = obj.getInt("year"),
+                    term               = obj.optString("term", ""),
+                    imageUriString     = obj.optString("imageUriString", "")
                 ))
             }
             list
@@ -43,11 +46,31 @@ object QuestionStorage {
         save(context, list)
     }
 
-    // 問題を削除
+    // ユーザー追加問題を削除
     fun deleteQuestion(context: Context, id: Int) {
         val list = loadQuestions(context).toMutableList()
         list.removeAll { it.id == id }
         save(context, list)
+    }
+
+    // 内蔵問題の削除フラグを保存
+    fun saveDeletedId(context: Context, id: Int) {
+        val ids = loadDeletedIds(context).toMutableSet()
+        ids.add(id)
+        val arr = JSONArray()
+        ids.forEach { arr.put(it) }
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .edit().putString(KEY_DELETED_IDS, arr.toString()).apply()
+    }
+
+    // 削除済み内蔵問題IDを取得
+    fun loadDeletedIds(context: Context): Set<Int> {
+        val json = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_DELETED_IDS, null) ?: return emptySet()
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).map { arr.getInt(it) }.toSet()
+        } catch (e: Exception) { emptySet() }
     }
 
     // 新しいIDを生成（既存の最大ID+1）
@@ -70,6 +93,8 @@ object QuestionStorage {
             obj.put("explanation",        q.explanation)
             obj.put("examType",           q.examType.name)
             obj.put("year",               q.year)
+            obj.put("term",               q.term)
+            obj.put("imageUriString",     q.imageUriString)
             array.put(obj)
         }
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)

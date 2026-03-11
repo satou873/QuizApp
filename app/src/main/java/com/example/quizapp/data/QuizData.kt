@@ -1792,7 +1792,13 @@ object QuizData {
 
     // ===== Context付きメソッド（ユーザー追加問題を結合） =====
     fun getAllQuestions(context: Context): List<Question> {
-        return questions + QuestionStorage.loadQuestions(context)
+        val userQuestions = QuestionStorage.loadQuestions(context)
+        val deletedIds    = QuestionStorage.loadDeletedIds(context)
+        val userIds       = userQuestions.map { it.id }.toSet()
+        // 内蔵問題のうち削除済みや上書き済みを除外し、ユーザー問題と結合
+        val filteredBuiltin = questions.filter { it.id !in deletedIds && it.id !in userIds }
+        val filteredUser    = userQuestions.filter { it.id !in deletedIds }
+        return filteredBuiltin + filteredUser
     }
 
     fun getQuestionsByExamType(context: Context, examType: ExamType): List<Question> {
