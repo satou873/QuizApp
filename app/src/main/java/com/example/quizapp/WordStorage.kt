@@ -41,6 +41,8 @@ object WordStorage {
                     title       = obj.getString("title"),
                     content     = obj.getString("content"),
                     examType    = obj.optString("examType", ""),
+                    category    = obj.optString("category", ""),
+                    isFormula   = obj.optBoolean("isFormula", false),
                     questionIds = (0 until qIds.length()).map { qIds.getInt(it) }
                 ))
             }
@@ -72,6 +74,8 @@ object WordStorage {
             obj.put("title",       e.title)
             obj.put("content",     e.content)
             obj.put("examType",    e.examType)
+            obj.put("category",    e.category)
+            obj.put("isFormula",   e.isFormula)
             obj.put("questionIds", qIds)
             array.put(obj)
         }
