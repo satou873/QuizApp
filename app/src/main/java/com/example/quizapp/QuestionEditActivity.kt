@@ -18,8 +18,27 @@ import com.example.quizapp.model.Question
 class QuestionEditActivity : AppCompatActivity() {
 
     private lateinit var listContainer: LinearLayout
+    private lateinit var addButton: Button
     private var currentExamType: ExamType = ExamType.ENGINEERING_A
-    private var currentYear: Int? = null
+    private var currentTerm: String? = null
+
+    private val predefinedTerms = listOf(
+        Pair(2021, "令和3年2月期"),
+        Pair(2021, "令和3年6月期"),
+        Pair(2021, "令和3年10月期"),
+        Pair(2022, "令和4年2月期"),
+        Pair(2022, "令和4年6月期"),
+        Pair(2022, "令和4年10月期"),
+        Pair(2023, "令和5年2月期"),
+        Pair(2023, "令和5年6月期"),
+        Pair(2023, "令和5年10月期"),
+        Pair(2024, "令和6年2月期"),
+        Pair(2024, "令和6年6月期"),
+        Pair(2024, "令和6年10月期"),
+        Pair(2025, "令和7年2月期"),
+        Pair(2025, "令和7年6月期"),
+        Pair(2025, "令和7年10月期")
+    )
 
     // ファイルピッカー（画像/PDF添付）
     private var onFilePicked: ((Uri) -> Unit)? = null
@@ -64,8 +83,11 @@ class QuestionEditActivity : AppCompatActivity() {
             layoutParams = lp
         })
 
-        root.addView(Button(this).apply {
-            text = "➕ 問題を追加する"
+        root.addView(makeExamTypeRow())
+        root.addView(makeTermRow())
+
+        addButton = Button(this).apply {
+            text = "➕ この試験期に問題を追加"
             textSize = 15f
             setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(
@@ -75,14 +97,13 @@ class QuestionEditActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            lp.bottomMargin = 16
+            lp.bottomMargin = 8
             layoutParams = lp
             setPadding(16, 36, 16, 36)
-            setOnClickListener { showEditDialog(null) }
-        })
-
-        root.addView(makeExamTypeRow())
-        root.addView(makeYearRow())
+            visibility = android.view.View.GONE
+            setOnClickListener { showEditDialog(null, currentTerm) }
+        }
+        root.addView(addButton)
 
         listContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -157,44 +178,44 @@ class QuestionEditActivity : AppCompatActivity() {
                 setPadding(20, 20, 20, 20)
                 setOnClickListener {
                     currentExamType = et
-                    currentYear     = null
+                    currentTerm     = null
                     rebuildExamTypeRow()
-                    rebuildYearRow()
+                    rebuildTermRow()
                     refreshList()
                 }
             })
         }
     }
 
-    // ===== 年度フィルター =====
-    private lateinit var yearRow: LinearLayout
+    // ===== 試験期フィルター =====
+    private lateinit var termRow: LinearLayout
 
-    private fun makeYearRow(): HorizontalScrollView {
+    private fun makeTermRow(): HorizontalScrollView {
         val hsv = HorizontalScrollView(this).apply {
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            lp.bottomMargin = 16
+            lp.bottomMargin = 8
             layoutParams = lp
         }
-        yearRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        hsv.addView(yearRow)
-        rebuildYearRow()
+        termRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        hsv.addView(termRow)
+        rebuildTermRow()
         return hsv
     }
 
-    private fun rebuildYearRow() {
-        yearRow.removeAllViews()
+    private fun rebuildTermRow() {
+        termRow.removeAllViews()
 
-        yearRow.addView(Button(this).apply {
-            text     = "全年度"
+        termRow.addView(Button(this).apply {
+            text     = "全期"
             textSize = 12f
             setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(
                 Color.parseColor("#607D8B")
             )
-            alpha = if (currentYear == null) 1.0f else 0.5f
+            alpha = if (currentTerm == null) 1.0f else 0.5f
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -203,22 +224,22 @@ class QuestionEditActivity : AppCompatActivity() {
             layoutParams = lp
             setPadding(20, 20, 20, 20)
             setOnClickListener {
-                currentYear = null
-                rebuildYearRow()
+                currentTerm = null
+                addButton.visibility = android.view.View.GONE
+                rebuildTermRow()
                 refreshList()
             }
         })
 
-        val terms = QuizData.getTermsByExamType(this, currentExamType)
-        terms.forEach { (yr, termLabel) ->
-            yearRow.addView(Button(this).apply {
+        predefinedTerms.forEach { (_, termLabel) ->
+            termRow.addView(Button(this).apply {
                 text     = termLabel
                 textSize = 12f
                 setTextColor(Color.WHITE)
                 backgroundTintList = android.content.res.ColorStateList.valueOf(
                     Color.parseColor("#FF9800")
                 )
-                alpha = if (currentYear == yr) 1.0f else 0.5f
+                alpha = if (currentTerm == termLabel) 1.0f else 0.5f
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -227,8 +248,9 @@ class QuestionEditActivity : AppCompatActivity() {
                 layoutParams = lp
                 setPadding(20, 20, 20, 20)
                 setOnClickListener {
-                    currentYear = yr
-                    rebuildYearRow()
+                    currentTerm = termLabel
+                    addButton.visibility = android.view.View.VISIBLE
+                    rebuildTermRow()
                     refreshList()
                 }
             })
@@ -239,8 +261,8 @@ class QuestionEditActivity : AppCompatActivity() {
     private fun refreshList() {
         listContainer.removeAllViews()
 
-        val list = if (currentYear != null) {
-            QuizData.getQuestionsByExamTypeAndYear(this, currentExamType, currentYear!!)
+        val list = if (currentTerm != null) {
+            QuizData.getQuestionsByTerm(this, currentExamType, currentTerm!!)
         } else {
             QuizData.getQuestionsByExamType(this, currentExamType)
         }
@@ -368,7 +390,7 @@ class QuestionEditActivity : AppCompatActivity() {
                             // 内蔵問題は削除フラグを保存
                             QuestionStorage.saveDeletedId(this@QuestionEditActivity, question.id)
                         }
-                        rebuildYearRow()
+                        rebuildTermRow()
                         refreshList()
                     }
                     .setNegativeButton("キャンセル", null)
@@ -406,20 +428,8 @@ class QuestionEditActivity : AppCompatActivity() {
         listContainer.addView(card)
     }
 
-    // ===== 年度文字列から西暦を計算 =====
-    // 「令和〇年」→ 2018 + N（令和元年=2019、令和2年=2020、…）
-    private fun parseYearFromTerm(term: String): Int {
-        val reiwaMatcher = Regex("令和(元|\\d+)年").find(term)
-        if (reiwaMatcher != null) {
-            val n = reiwaMatcher.groupValues[1]
-            val reiwaYear = if (n == "元") 1 else n.toIntOrNull() ?: 1
-            return 2018 + reiwaYear
-        }
-        return 2024
-    }
-
     // ===== 問題追加・編集ダイアログ =====
-    private fun showEditDialog(existing: Question?) {
+    private fun showEditDialog(existing: Question?, preselectedTerm: String? = null) {
         val scrollDialog = ScrollView(this)
         val dialogView   = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -475,23 +485,25 @@ class QuestionEditActivity : AppCompatActivity() {
         )
         dialogView.addView(spinnerExam)
 
-        // 年度入力（テキスト形式、日本語対応）
-        dialogView.addView(label("年度"))
-        val etTerm = EditText(this).apply {
-            hint      = "例：令和6年6月期"
-            textSize  = 14f
-            inputType = InputType.TYPE_CLASS_TEXT
-            setText(
-                existing?.term?.ifEmpty { null }
-                    ?: existing?.year?.let { "${it}年" }
-                    ?: ""
-            )
+        // 試験期選択（Spinner）
+        dialogView.addView(label("試験期"))
+        val termLabels = predefinedTerms.map { it.second }
+        val spinnerTerm = Spinner(this).apply {
+            adapter = ArrayAdapter(this@QuestionEditActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                termLabels)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        dialogView.addView(etTerm)
+        // 初期選択：既存問題の term → 一致するものを選択、なければ preselectedTerm → なければ先頭
+        val initialTermLabel = existing?.term?.takeIf { it.isNotEmpty() } ?: preselectedTerm
+        val initialTermIdx = if (initialTermLabel != null)
+            termLabels.indexOfFirst { it == initialTermLabel }.coerceAtLeast(0)
+        else 0
+        spinnerTerm.setSelection(initialTermIdx)
+        dialogView.addView(spinnerTerm)
 
         dialogView.addView(label("問題文"))
         val etQuestion = editText("問題文を入力", existing?.questionText ?: "", multiLine = true)
@@ -567,8 +579,10 @@ class QuestionEditActivity : AppCompatActivity() {
                 val c3    = etC3.text.toString().trim()
                 val c4    = etC4.text.toString().trim()
                 val exp   = etExplanation.text.toString().trim()
-                val term  = etTerm.text.toString().trim()
-                val yr    = if (term.isNotEmpty()) parseYearFromTerm(term) else 2024
+                val selectedTermPair = predefinedTerms[spinnerTerm.selectedItemPosition]
+                val term  = selectedTermPair.second
+                val yr    = selectedTermPair.first
+                val selectedExamType = examTypes[spinnerExam.selectedItemPosition]
 
                 if (qText.isEmpty() || c0.isEmpty() || c1.isEmpty() ||
                     c2.isEmpty() || c3.isEmpty()) {
@@ -586,19 +600,40 @@ class QuestionEditActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                QuestionStorage.saveQuestion(this, Question(
-                    id                 = existing?.id ?: QuestionStorage.generateId(this),
-                    questionText       = qText,
-                    choices            = choices,
-                    correctAnswerIndex = correctIdx,
-                    explanation        = exp,
-                    examType           = examTypes[spinnerExam.selectedItemPosition],
-                    year               = yr,
-                    term               = term,
-                    imageUriString     = attachedUriString
-                ))
-                rebuildYearRow()
-                refreshList()
+                // 重複チェック（同じ term × examType × questionText の問題が既に存在するか）
+                val duplicate = QuizData.getAllQuestions(this).any { q ->
+                    q.id != (existing?.id ?: -1) &&
+                    q.examType == selectedExamType &&
+                    q.term == term &&
+                    q.questionText == qText
+                }
+
+                fun doSave() {
+                    QuestionStorage.saveQuestion(this, Question(
+                        id                 = existing?.id ?: QuestionStorage.generateId(this),
+                        questionText       = qText,
+                        choices            = choices,
+                        correctAnswerIndex = correctIdx,
+                        explanation        = exp,
+                        examType           = selectedExamType,
+                        year               = yr,
+                        term               = term,
+                        imageUriString     = attachedUriString
+                    ))
+                    rebuildTermRow()
+                    refreshList()
+                }
+
+                if (duplicate) {
+                    AlertDialog.Builder(this)
+                        .setTitle("重複確認")
+                        .setMessage("同じ問題が既に存在します。上書きしますか？")
+                        .setPositiveButton("上書き") { _, _ -> doSave() }
+                        .setNegativeButton("キャンセル", null)
+                        .show()
+                } else {
+                    doSave()
+                }
             }
             .setNegativeButton("キャンセル", null)
             .create()

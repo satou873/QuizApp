@@ -14,6 +14,8 @@ class FlashCardActivity : AppCompatActivity() {
     private var cards: List<WordEntry> = emptyList()
     private var currentIndex = 0
     private var isFlipped    = false
+    private var lastTapTime  = 0L
+    private val DOUBLE_TAP_INTERVAL = 400L
 
     private lateinit var tvProgress: TextView
     private lateinit var tvCategory: TextView
@@ -94,7 +96,7 @@ class FlashCardActivity : AppCompatActivity() {
             elevation   = 8f
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                600
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
             lp.bottomMargin = 16
             layoutParams = lp
@@ -119,12 +121,20 @@ class FlashCardActivity : AppCompatActivity() {
             setTextColor(Color.parseColor("#555555"))
             gravity    = Gravity.CENTER
             visibility = View.GONE
+            maxLines   = 6   // 通常表示は最大6行（長文は長押しで全文表示）
+            ellipsize  = android.text.TextUtils.TruncateAt.END
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             lp.topMargin = 24
             layoutParams = lp
+            setOnLongClickListener {
+                maxLines  = Int.MAX_VALUE
+                ellipsize = null
+                invalidate()
+                true
+            }
         }
         cardView.addView(tvBack)
 
@@ -142,8 +152,20 @@ class FlashCardActivity : AppCompatActivity() {
         }
         cardView.addView(tvTapHint)
 
-        // カードタップで裏面表示
-        cardView.setOnClickListener { flipCard() }
+        // カードタップ：表面=1タップで裏面へ、裏面=ダブルタップで次へ
+        cardView.setOnClickListener {
+            if (!isFlipped) {
+                flipCard()
+            } else {
+                val now = System.currentTimeMillis()
+                if (now - lastTapTime < DOUBLE_TAP_INTERVAL) {
+                    nextCard()
+                    lastTapTime = 0L
+                } else {
+                    lastTapTime = now
+                }
+            }
+        }
 
         // ナビゲーションボタン行
         val navRow = LinearLayout(this).apply {
@@ -268,7 +290,8 @@ class FlashCardActivity : AppCompatActivity() {
     private fun showCard() {
         if (cards.isEmpty()) return
         val entry = cards[currentIndex]
-        isFlipped = false
+        isFlipped    = false
+        lastTapTime  = 0L
 
         tvFront.text         = entry.title
         tvBack.text          = entry.content
@@ -287,8 +310,10 @@ class FlashCardActivity : AppCompatActivity() {
     private fun flipCard() {
         isFlipped = !isFlipped
         if (isFlipped) {
+            tvBack.maxLines  = 6
+            tvBack.ellipsize = android.text.TextUtils.TruncateAt.END
             tvBack.visibility = View.VISIBLE
-            tvTapHint.text    = "▲ 閉じる"
+            tvTapHint.text    = "ダブルタップで次へ　長押しで全文表示"
             cardView.setBackgroundColor(Color.parseColor("#E8F5E9"))
         } else {
             tvBack.visibility = View.GONE
