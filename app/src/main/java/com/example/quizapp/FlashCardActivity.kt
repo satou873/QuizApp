@@ -152,14 +152,14 @@ class FlashCardActivity : AppCompatActivity() {
         }
         cardView.addView(tvTapHint)
 
-        // カードタップ：表面=1タップで裏面へ、裏面=ダブルタップで次へ
+        // カードタップ：表面=1タップで裏面へ、裏面=ダブルタップで表面へ戻る
         cardView.setOnClickListener {
             if (!isFlipped) {
                 flipCard()
             } else {
                 val now = System.currentTimeMillis()
                 if (now - lastTapTime < DOUBLE_TAP_INTERVAL) {
-                    nextCard()
+                    flipCard()
                     lastTapTime = 0L
                 } else {
                     lastTapTime = now
@@ -313,7 +313,7 @@ class FlashCardActivity : AppCompatActivity() {
             tvBack.maxLines  = 6
             tvBack.ellipsize = android.text.TextUtils.TruncateAt.END
             tvBack.visibility = View.VISIBLE
-            tvTapHint.text    = "ダブルタップで次へ　長押しで全文表示"
+            tvTapHint.text    = "ダブルタップで表へ戻る　長押しで全文表示"
             cardView.setBackgroundColor(Color.parseColor("#E8F5E9"))
         } else {
             tvBack.visibility = View.GONE
