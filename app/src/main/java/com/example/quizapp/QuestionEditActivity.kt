@@ -509,12 +509,15 @@ class QuestionEditActivity : AppCompatActivity() {
         dialogView.addView(label("選択肢④"))
         val etC3 = editText("選択肢④", existing?.choices?.getOrNull(3) ?: "")
         dialogView.addView(etC3)
+        dialogView.addView(label("選択肢⑤"))
+        val etC4 = editText("選択肢⑤", existing?.choices?.getOrNull(4) ?: "")
+        dialogView.addView(etC4)
 
         dialogView.addView(label("正解"))
         val spinnerCorrect = Spinner(this).apply {
             adapter = ArrayAdapter(this@QuestionEditActivity,
                 android.R.layout.simple_spinner_dropdown_item,
-                listOf("①", "②", "③", "④"))
+                listOf("①", "②", "③", "④", "⑤"))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -562,6 +565,7 @@ class QuestionEditActivity : AppCompatActivity() {
                 val c1    = etC1.text.toString().trim()
                 val c2    = etC2.text.toString().trim()
                 val c3    = etC3.text.toString().trim()
+                val c4    = etC4.text.toString().trim()
                 val exp   = etExplanation.text.toString().trim()
                 val term  = etTerm.text.toString().trim()
                 val yr    = if (term.isNotEmpty()) parseYearFromTerm(term) else 2024
@@ -573,11 +577,20 @@ class QuestionEditActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
+                val choices = if (c4.isEmpty()) listOf(c0, c1, c2, c3)
+                              else listOf(c0, c1, c2, c3, c4)
+                val correctIdx = spinnerCorrect.selectedItemPosition
+                if (correctIdx >= choices.size) {
+                    Toast.makeText(this, "選択肢⑤が空のため、正解を⑤に設定できません",
+                        Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
                 QuestionStorage.saveQuestion(this, Question(
                     id                 = existing?.id ?: QuestionStorage.generateId(this),
                     questionText       = qText,
-                    choices            = listOf(c0, c1, c2, c3),
-                    correctAnswerIndex = spinnerCorrect.selectedItemPosition,
+                    choices            = choices,
+                    correctAnswerIndex = correctIdx,
                     explanation        = exp,
                     examType           = examTypes[spinnerExam.selectedItemPosition],
                     year               = yr,
