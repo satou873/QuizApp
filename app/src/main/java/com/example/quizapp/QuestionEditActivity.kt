@@ -37,7 +37,8 @@ class QuestionEditActivity : AppCompatActivity() {
         Pair(2024, "令和6年10月期"),
         Pair(2025, "令和7年2月期"),
         Pair(2025, "令和7年6月期"),
-        Pair(2025, "令和7年10月期")
+        Pair(2025, "令和7年10月期"),
+        Pair(2026, "令和8年2月期")
     )
 
     // ファイルピッカー（画像/PDF添付）
