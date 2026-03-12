@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnChoice1: Button
     private lateinit var btnChoice2: Button
     private lateinit var btnChoice3: Button
+    private lateinit var btnChoice4: Button
     private lateinit var btnSubmit: Button
     private lateinit var btnNext: Button
     private lateinit var btnCheckPerfect: Button
@@ -85,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         btnChoice1        = findViewById(R.id.btnChoice1)
         btnChoice2        = findViewById(R.id.btnChoice2)
         btnChoice3        = findViewById(R.id.btnChoice3)
+        btnChoice4        = findViewById(R.id.btnChoice4)
         btnSubmit         = findViewById(R.id.btnSubmit)
         btnNext           = findViewById(R.id.btnNext)
         btnCheckPerfect   = findViewById(R.id.btnCheckPerfect)
@@ -109,7 +111,7 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        val choiceButtons = listOf(btnChoice0, btnChoice1, btnChoice2, btnChoice3)
+        val choiceButtons = listOf(btnChoice0, btnChoice1, btnChoice2, btnChoice3, btnChoice4)
 
         choiceButtons.forEachIndexed { index, button ->
             button.setOnClickListener {
@@ -210,10 +212,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             choiceButtons.forEachIndexed { index, button ->
-                button.text = question.choices[index]
-                button.setBackgroundColor(Color.parseColor("#607D8B"))
-                button.setTextColor(Color.WHITE)
-                button.isEnabled = true
+                if (index < question.choices.size) {
+                    button.text = question.choices[index]
+                    button.visibility = View.VISIBLE
+                    button.setBackgroundColor(Color.parseColor("#607D8B"))
+                    button.setTextColor(Color.WHITE)
+                    button.isEnabled = true
+                } else {
+                    button.visibility = View.GONE
+                }
             }
             btnSubmit.isEnabled          = false
             btnSubmit.visibility         = View.VISIBLE

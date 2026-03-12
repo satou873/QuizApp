@@ -97,6 +97,15 @@
             android:text="選択肢4"
             android:textSize="16sp"
             android:padding="12dp"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnChoice4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="選択肢5"
+            android:textSize="16sp"
+            android:padding="12dp"
             android:layout_marginBottom="24dp"/>
 
         <!-- 解答ボタン -->
