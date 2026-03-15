@@ -20,14 +20,15 @@ import com.example.quizapp.model.Question
 class QuestionEditActivity : AppCompatActivity() {
 
     private lateinit var listContainer: LinearLayout
-    private lateinit var addButton: Button
     private var currentExamType: ExamType = ExamType.ENGINEERING_A
-    private var currentTerm: String? = null
 
-    // アコーディオン状態
+    // ページ全体のアコーディオン状態
     private var isContentExpanded = true
     private lateinit var tvToggleIcon: TextView
     private lateinit var contentWrapper: LinearLayout
+
+    // 試験期ごとの展開状態
+    private val expandedTerms = mutableSetOf<String>()
 
     private val predefinedTerms = listOf(
         Pair(2021, "令和3年2月期"),
@@ -125,26 +126,6 @@ class QuestionEditActivity : AppCompatActivity() {
         root.addView(contentWrapper)
 
         contentWrapper.addView(makeExamTypeRow())
-        contentWrapper.addView(makeTermRow())
-
-        addButton = Button(this).apply {
-            text = "➕ この試験期に問題を追加"
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            backgroundTintList = android.content.res.ColorStateList.valueOf(
-                Color.parseColor("#4CAF50")
-            )
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            lp.bottomMargin = 8
-            layoutParams = lp
-            setPadding(16, 36, 16, 36)
-            visibility = View.GONE
-            setOnClickListener { showEditDialog(null, currentTerm) }
-        }
-        contentWrapper.addView(addButton)
 
         listContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -226,143 +207,141 @@ class QuestionEditActivity : AppCompatActivity() {
                 setPadding(20, 20, 20, 20)
                 setOnClickListener {
                     currentExamType = et
-                    currentTerm     = null
                     rebuildExamTypeRow()
-                    rebuildTermRow()
                     refreshList()
                 }
             })
         }
     }
 
-    // ===== 試験期フィルター =====
-    private lateinit var termRow: LinearLayout
+    // ===== 試験期別アコーディオンリスト =====
+    private fun refreshList() {
+        listContainer.removeAllViews()
 
-    private fun makeTermRow(): HorizontalScrollView {
-        val hsv = HorizontalScrollView(this).apply {
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            lp.bottomMargin = 8
-            layoutParams = lp
-        }
-        termRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        hsv.addView(termRow)
-        rebuildTermRow()
-        return hsv
-    }
-
-    private fun rebuildTermRow() {
-        termRow.removeAllViews()
-
-        termRow.addView(Button(this).apply {
-            text     = "全期"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            backgroundTintList = android.content.res.ColorStateList.valueOf(
-                Color.parseColor("#607D8B")
-            )
-            alpha = if (currentTerm == null) 1.0f else 0.5f
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            lp.marginEnd = 8
-            layoutParams = lp
-            setPadding(20, 20, 20, 20)
-            setOnClickListener {
-                currentTerm = null
-                addButton.visibility = View.GONE
-                rebuildTermRow()
-                refreshList()
-            }
-        })
+        val userIds = QuestionStorage.loadQuestions(this).map { it.id }.toSet()
 
         predefinedTerms.forEach { (_, termLabel) ->
-            termRow.addView(Button(this).apply {
-                text     = termLabel
-                textSize = 12f
-                setTextColor(Color.WHITE)
-                backgroundTintList = android.content.res.ColorStateList.valueOf(
-                    Color.parseColor("#FF9800")
+            val questions = QuizData.getQuestionsByTerm(this, currentExamType, termLabel)
+            val isExpanded = termLabel in expandedTerms
+
+            // 試験期ヘッダー行（クリックでトグル）
+            val termHeader = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setBackgroundColor(Color.parseColor("#E3F2FD"))
+                setPadding(20, 16, 20, 16)
+                isClickable = true
+                isFocusable = true
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
                 )
-                alpha = if (currentTerm == termLabel) 1.0f else 0.5f
+                lp.topMargin = 4
+                lp.bottomMargin = 2
+                layoutParams = lp
+            }
+            val tvTermLabel = TextView(this).apply {
+                text = termLabel
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1565C0"))
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+            }
+            val tvCount = TextView(this).apply {
+                text = "${questions.size}問"
+                textSize = 12f
+                setTextColor(Color.parseColor("#888888"))
                 val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
                 lp.marginEnd = 8
                 layoutParams = lp
-                setPadding(20, 20, 20, 20)
-                setOnClickListener {
-                    currentTerm = termLabel
-                    addButton.visibility = View.VISIBLE
-                    rebuildTermRow()
-                    refreshList()
-                }
-            })
-        }
-    }
+            }
+            val tvTermToggle = TextView(this).apply {
+                text = if (isExpanded) "▼" else "▶"
+                textSize = 14f
+                setTextColor(Color.parseColor("#555555"))
+            }
+            termHeader.addView(tvTermLabel)
+            termHeader.addView(tvCount)
+            termHeader.addView(tvTermToggle)
 
-    // ===== リスト更新 =====
-    private fun refreshList() {
-        listContainer.removeAllViews()
-
-        val list = if (currentTerm != null) {
-            QuizData.getQuestionsByTerm(this, currentExamType, currentTerm!!)
-        } else {
-            QuizData.getQuestionsByExamType(this, currentExamType)
-        }
-
-        // ユーザー追加問題のIDセット（内蔵問題かどうかの判定に使用）
-        val userIds    = QuestionStorage.loadQuestions(this).map { it.id }.toSet()
-        val builtinIds = QuizData.questions.map { it.id }.toSet()
-
-        if (list.isEmpty()) {
-            listContainer.addView(TextView(this).apply {
-                text     = "問題がありません"
-                textSize = 15f
-                setTextColor(Color.parseColor("#999999"))
-                gravity  = Gravity.CENTER
-                val lp   = LinearLayout.LayoutParams(
+            // 試験期コンテンツ（問題リスト + 追加ボタン）
+            val termContent = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = if (isExpanded) View.VISIBLE else View.GONE
+                setBackgroundColor(Color.parseColor("#F5F9FF"))
+                val lp = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
-                lp.topMargin = 32
+                lp.bottomMargin = 4
                 layoutParams = lp
-            })
-            return
-        }
-
-        listContainer.addView(TextView(this).apply {
-            text     = "${list.size} 問"
-            textSize = 13f
-            setTextColor(Color.parseColor("#888888"))
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            lp.bottomMargin = 8
-            layoutParams = lp
-        })
-
-        // 年度ごとにグループ化して問番号を割り当て
-        val grouped     = list.groupBy { it.year }
-        val yearsSorted = grouped.keys.sortedDescending()
-
-        yearsSorted.forEach { year ->
-            val questionsInYear = grouped[year] ?: return@forEach
-            questionsInYear.forEachIndexed { indexInYear, question ->
-                val isUserAdded  = question.id in userIds
-                val numberInYear = indexInYear + 1
-                addQuestionRow(question, isUserAdded, numberInYear)
             }
+
+            // 問題追加ボタン（試験期ごと）
+            termContent.addView(Button(this).apply {
+                text = "➕ この試験期に問題を追加"
+                textSize = 13f
+                setTextColor(Color.WHITE)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    Color.parseColor("#4CAF50")
+                )
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.topMargin = 8
+                lp.bottomMargin = 8
+                lp.marginStart = 8
+                lp.marginEnd = 8
+                layoutParams = lp
+                setPadding(16, 28, 16, 28)
+                setOnClickListener { showEditDialog(null, termLabel) }
+            })
+
+            if (questions.isEmpty()) {
+                termContent.addView(TextView(this).apply {
+                    text = "この試験期の問題はありません"
+                    textSize = 13f
+                    setTextColor(Color.parseColor("#999999"))
+                    gravity = Gravity.CENTER
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    lp.topMargin = 8
+                    lp.bottomMargin = 16
+                    layoutParams = lp
+                })
+            } else {
+                questions.forEachIndexed { index, question ->
+                    addQuestionRow(termContent, question, question.id in userIds, index + 1)
+                }
+            }
+
+            termHeader.setOnClickListener {
+                if (termLabel in expandedTerms) {
+                    expandedTerms.remove(termLabel)
+                    termContent.visibility = View.GONE
+                    tvTermToggle.text = "▶"
+                } else {
+                    expandedTerms.add(termLabel)
+                    termContent.visibility = View.VISIBLE
+                    tvTermToggle.text = "▼"
+                }
+            }
+
+            listContainer.addView(termHeader)
+            listContainer.addView(termContent)
         }
     }
 
     // ===== 問題カード =====
-    private fun addQuestionRow(question: Question, isUserAdded: Boolean, numberInYear: Int) {
+    private fun addQuestionRow(container: LinearLayout, question: Question, isUserAdded: Boolean, numberInYear: Int) {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(
@@ -438,7 +417,6 @@ class QuestionEditActivity : AppCompatActivity() {
                             // 内蔵問題は削除フラグを保存
                             QuestionStorage.saveDeletedId(this@QuestionEditActivity, question.id)
                         }
-                        rebuildTermRow()
                         refreshList()
                     }
                     .setNegativeButton("キャンセル", null)
@@ -473,7 +451,7 @@ class QuestionEditActivity : AppCompatActivity() {
             })
         }
 
-        listContainer.addView(card)
+        container.addView(card)
     }
 
     // ===== 問題追加・編集ダイアログ =====
@@ -668,7 +646,7 @@ class QuestionEditActivity : AppCompatActivity() {
                         term               = term,
                         imageUriString     = attachedUriString
                     ))
-                    rebuildTermRow()
+                    rebuildExamTypeRow()
                     refreshList()
                 }
 
