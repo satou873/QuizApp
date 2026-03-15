@@ -36,6 +36,7 @@
         <activity android:name=".FlashCardSelectActivity"   android:exported="false"/>
         <activity android:name=".FlashCardActivity"         android:exported="false"/>
         <activity android:name=".OneQActivity"              android:exported="false"/>
+        <activity android:name=".OneQListActivity"          android:exported="false"/>
 
     </application>
 
