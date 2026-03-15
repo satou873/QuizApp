@@ -52,10 +52,21 @@
             android:id="@+id/btnFlashCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="⚡ 一問一答"
+            android:text="⚡ 単語・公式学習"
             android:textSize="18sp"
             android:padding="16dp"
             android:backgroundTint="#9C27B0"
+            android:textColor="#FFFFFF"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btnOneQ"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="❓ 一問一答"
+            android:textSize="18sp"
+            android:padding="16dp"
+            android:backgroundTint="#F44336"
             android:textColor="#FFFFFF"
             android:layout_marginBottom="16dp"/>
 

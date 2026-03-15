@@ -13,6 +13,7 @@ class HomeActivity : AppCompatActivity() {
 
         val btnStart     = findViewById<Button>(R.id.btnStart)
         val btnFlashCard = findViewById<Button>(R.id.btnFlashCard)
+        val btnOneQ      = findViewById<Button>(R.id.btnOneQ)
         val btnWordBook  = findViewById<Button>(R.id.btnWordBook)
         val btnProfile   = findViewById<Button>(R.id.btnProfile)
 
@@ -23,6 +24,10 @@ class HomeActivity : AppCompatActivity() {
 
         btnFlashCard.setOnClickListener {
             startActivity(Intent(this, FlashCardSelectActivity::class.java))
+        }
+
+        btnOneQ.setOnClickListener {
+            startActivity(Intent(this, OneQActivity::class.java))
         }
 
         btnWordBook.setOnClickListener {

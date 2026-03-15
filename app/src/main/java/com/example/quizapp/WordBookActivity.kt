@@ -1,7 +1,9 @@
 package com.example.quizapp
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
@@ -9,6 +11,8 @@ import android.text.TextWatcher
 import android.view.Gravity
 import android.view.inputmethod.EditorInfo
 import android.widget.*
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.quizapp.model.ExamType
 import com.example.quizapp.model.WordEntry
@@ -25,6 +29,10 @@ class WordBookActivity : AppCompatActivity() {
     private var aiueoFilter: String    = ""
     private var categoryFilter: String = ""
     private var formulaOnly: Boolean   = false
+
+    // ファイルピッカー（PDF/画像添付）
+    private var onFilePicked: ((Uri) -> Unit)? = null
+    private lateinit var pickFileLauncher: ActivityResultLauncher<Array<String>>
 
     // ===== 無線工学カテゴリ =====
     private val engineeringCategories = listOf(
@@ -90,6 +98,20 @@ class WordBookActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ファイルピッカーの登録（onCreateで呼ぶ必要あり）
+        pickFileLauncher = registerForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            if (uri != null) {
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (_: Exception) {}
+                onFilePicked?.invoke(uri)
+            }
+        }
 
         val scroll = ScrollView(this)
         val root   = LinearLayout(this).apply {
@@ -535,6 +557,42 @@ class WordBookActivity : AppCompatActivity() {
             tagRow.addView(makeTag("📐 公式", "#E65100"))
         }
         card.addView(tagRow)
+
+        // PDF添付済みの場合は「PDFを見る」ボタンを表示
+        if (entry.pdfUriString.isNotEmpty()) {
+            card.addView(Button(this).apply {
+                text = "📄 PDFを見る"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    Color.parseColor("#E53935")
+                )
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.topMargin = 8
+                layoutParams = lp
+                setPadding(20, 12, 20, 12)
+                setOnClickListener {
+                    try {
+                        val uri = Uri.parse(entry.pdfUriString)
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, "application/pdf")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(Intent.createChooser(intent, "PDFを開くアプリを選択"))
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@WordBookActivity,
+                            "PDFを開くアプリが見つかりません",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            })
+        }
+
         listContainer.addView(card)
     }
 
@@ -666,6 +724,32 @@ class WordBookActivity : AppCompatActivity() {
         }
         dialogView.addView(etIds)
 
+        // PDF/画像添付ボタン
+        dialogView.addView(lbl("PDF/画像添付"))
+        var attachedPdfUriString = existing?.pdfUriString ?: ""
+        val btnAttach = Button(this).apply {
+            text = if (attachedPdfUriString.isEmpty()) "📎 PDF/画像を添付" else "📎 添付済（タップで変更）"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                Color.parseColor("#FF7043")
+            )
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setPadding(16, 20, 16, 20)
+        }
+        dialogView.addView(btnAttach)
+
+        btnAttach.setOnClickListener {
+            onFilePicked = { uri ->
+                attachedPdfUriString = uri.toString()
+                btnAttach.text = "📎 添付済（タップで変更）"
+            }
+            pickFileLauncher.launch(arrayOf("*/*"))
+        }
+
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "➕ 新規登録" else "✏️ 編集")
             .setView(scrollDialog)
@@ -685,13 +769,14 @@ class WordBookActivity : AppCompatActivity() {
                 else idsText.split(",").mapNotNull { it.trim().toIntOrNull() }
 
                 WordStorage.saveWord(this, WordEntry(
-                    id          = existing?.id ?: System.currentTimeMillis(),
-                    title       = title,
-                    content     = content,
-                    examType    = selectedExam?.name ?: "",
-                    category    = selectedCat,
-                    isFormula   = cbFormula.isChecked,
-                    questionIds = ids
+                    id           = existing?.id ?: System.currentTimeMillis(),
+                    title        = title,
+                    content      = content,
+                    examType     = selectedExam?.name ?: "",
+                    category     = selectedCat,
+                    isFormula    = cbFormula.isChecked,
+                    questionIds  = ids,
+                    pdfUriString = attachedPdfUriString
                 ))
                 refreshList()
             }
