@@ -7,7 +7,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.example.quizapp.data.QuizData
+import com.example.quizapp.model.OneQEntry
 
 class OneQActivity : AppCompatActivity() {
 
@@ -18,7 +18,7 @@ class OneQActivity : AppCompatActivity() {
     private lateinit var tvExplanation: TextView
     private lateinit var btnNext: Button
 
-    private lateinit var questions: List<com.example.quizapp.model.Question>
+    private lateinit var questions: List<OneQEntry>
     private var currentIndex = 0
     private var score = 0
 
@@ -176,10 +176,10 @@ class OneQActivity : AppCompatActivity() {
         })
 
         // 問題リストを読み込みシャッフル
-        questions = QuizData.getAllQuestions(this).shuffled()
+        questions = OneQStorage.loadAll(this).shuffled()
 
         if (questions.isEmpty()) {
-            tvQuestion.text = "出題できる問題がありません。\n問題管理から問題を追加してください。"
+            tvQuestion.text = "出題できる問題がありません。\nマイページの一問一答管理から問題を追加してください。"
             tvProgress.text = ""
             choiceButtons.forEach { it.visibility = View.GONE }
         } else {
@@ -190,7 +190,7 @@ class OneQActivity : AppCompatActivity() {
     private fun showQuestion() {
         val q = questions[currentIndex]
         tvProgress.text = "${currentIndex + 1} / ${questions.size} 問  （正解：$score 問）"
-        tvQuestion.text = q.questionText
+        tvQuestion.text = q.question
 
         choiceButtons.forEachIndexed { idx, btn ->
             val choice = q.choices.getOrNull(idx)
@@ -220,7 +220,7 @@ class OneQActivity : AppCompatActivity() {
             if (btn.visibility == View.VISIBLE) {
                 btn.isEnabled = false
                 when {
-                    idx == q.correctAnswerIndex -> {
+                    idx == q.correctIndex -> {
                         btn.backgroundTintList = android.content.res.ColorStateList.valueOf(
                             Color.parseColor("#81C784")  // 正解：緑
                         )
@@ -241,7 +241,7 @@ class OneQActivity : AppCompatActivity() {
             }
         }
 
-        val isCorrect = selectedIdx == q.correctAnswerIndex
+        val isCorrect = selectedIdx == q.correctIndex
         if (isCorrect) score++
 
         tvResult.text = if (isCorrect) "⭕ 正解！" else "❌ 不正解"
@@ -270,7 +270,7 @@ class OneQActivity : AppCompatActivity() {
                     "正答率：${if (questions.isNotEmpty()) "%.1f".format(score.toDouble() / questions.size * 100) else "0.0"}%"
                 )
                 .setPositiveButton("もう一度") { _, _ ->
-                    questions = QuizData.getAllQuestions(this).shuffled()
+                    questions = OneQStorage.loadAll(this).shuffled()
                     currentIndex = 0
                     score = 0
                     showQuestion()
