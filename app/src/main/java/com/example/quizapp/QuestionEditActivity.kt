@@ -3,10 +3,12 @@ package com.example.quizapp
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
+import android.view.View
 import android.widget.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +23,11 @@ class QuestionEditActivity : AppCompatActivity() {
     private lateinit var addButton: Button
     private var currentExamType: ExamType = ExamType.ENGINEERING_A
     private var currentTerm: String? = null
+
+    // アコーディオン状態
+    private var isContentExpanded = true
+    private lateinit var tvToggleIcon: TextView
+    private lateinit var contentWrapper: LinearLayout
 
     private val predefinedTerms = listOf(
         Pair(2021, "令和3年2月期"),
@@ -71,21 +78,54 @@ class QuestionEditActivity : AppCompatActivity() {
         scroll.addView(root)
         setContentView(scroll)
 
-        root.addView(TextView(this).apply {
-            text     = "📝 問題管理"
-            textSize = 24f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            setTextColor(Color.parseColor("#333333"))
+        // アコーディオンヘッダー（クリックでコンテンツをトグル）
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(Color.parseColor("#E3F2FD"))
+            setPadding(24, 20, 24, 20)
             val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.bottomMargin = 4
+            layoutParams = lp
+            isClickable = true
+            isFocusable = true
+        }
+        headerRow.addView(TextView(this).apply {
+            text = "📝 問題管理"
+            textSize = 24f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.parseColor("#333333"))
+            layoutParams = LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+            )
+        })
+        tvToggleIcon = TextView(this).apply {
+            text = "▼"
+            textSize = 20f
+            setTextColor(Color.parseColor("#555555"))
+            layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            lp.bottomMargin = 16
-            layoutParams = lp
-        })
+        }
+        headerRow.addView(tvToggleIcon)
+        root.addView(headerRow)
 
-        root.addView(makeExamTypeRow())
-        root.addView(makeTermRow())
+        // コンテンツラッパー（トグル対象）
+        contentWrapper = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        root.addView(contentWrapper)
+
+        contentWrapper.addView(makeExamTypeRow())
+        contentWrapper.addView(makeTermRow())
 
         addButton = Button(this).apply {
             text = "➕ この試験期に問題を追加"
@@ -101,10 +141,10 @@ class QuestionEditActivity : AppCompatActivity() {
             lp.bottomMargin = 8
             layoutParams = lp
             setPadding(16, 36, 16, 36)
-            visibility = android.view.View.GONE
+            visibility = View.GONE
             setOnClickListener { showEditDialog(null, currentTerm) }
         }
-        root.addView(addButton)
+        contentWrapper.addView(addButton)
 
         listContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -113,7 +153,14 @@ class QuestionEditActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        root.addView(listContainer)
+        contentWrapper.addView(listContainer)
+
+        // ヘッダークリックでコンテンツをトグル
+        headerRow.setOnClickListener {
+            isContentExpanded = !isContentExpanded
+            contentWrapper.visibility = if (isContentExpanded) View.VISIBLE else View.GONE
+            tvToggleIcon.text = if (isContentExpanded) "▼" else "▶"
+        }
 
         root.addView(Button(this).apply {
             text = "← 戻る"
@@ -226,7 +273,7 @@ class QuestionEditActivity : AppCompatActivity() {
             setPadding(20, 20, 20, 20)
             setOnClickListener {
                 currentTerm = null
-                addButton.visibility = android.view.View.GONE
+                addButton.visibility = View.GONE
                 rebuildTermRow()
                 refreshList()
             }
@@ -250,7 +297,7 @@ class QuestionEditActivity : AppCompatActivity() {
                 setPadding(20, 20, 20, 20)
                 setOnClickListener {
                     currentTerm = termLabel
-                    addButton.visibility = android.view.View.VISIBLE
+                    addButton.visibility = View.VISIBLE
                     rebuildTermRow()
                     refreshList()
                 }
