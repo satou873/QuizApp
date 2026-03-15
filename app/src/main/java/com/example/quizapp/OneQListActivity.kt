@@ -4,62 +4,21 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
-import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
-import android.view.View
 import android.widget.*
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.example.quizapp.model.ExamType
-import com.example.quizapp.model.Question
+import com.example.quizapp.model.OneQEntry
 
 class OneQListActivity : AppCompatActivity() {
 
     private lateinit var listContainer: LinearLayout
-
-    // ファイルピッカー（画像/PDF添付）
-    private var onFilePicked: ((Uri) -> Unit)? = null
-    private lateinit var pickFileLauncher: ActivityResultLauncher<Array<String>>
-
-    private val predefinedTerms = listOf(
-        Pair(2021, "令和3年2月期"),
-        Pair(2021, "令和3年6月期"),
-        Pair(2021, "令和3年10月期"),
-        Pair(2022, "令和4年2月期"),
-        Pair(2022, "令和4年6月期"),
-        Pair(2022, "令和4年10月期"),
-        Pair(2023, "令和5年2月期"),
-        Pair(2023, "令和5年6月期"),
-        Pair(2023, "令和5年10月期"),
-        Pair(2024, "令和6年2月期"),
-        Pair(2024, "令和6年6月期"),
-        Pair(2024, "令和6年10月期"),
-        Pair(2025, "令和7年2月期"),
-        Pair(2025, "令和7年6月期"),
-        Pair(2025, "令和7年10月期"),
-        Pair(2026, "令和8年2月期")
-    )
+    private lateinit var genreFilterRow: LinearLayout
+    private var currentGenreFilter: String = "ALL"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        pickFileLauncher = registerForActivityResult(
-            ActivityResultContracts.OpenDocument()
-        ) { uri: Uri? ->
-            if (uri != null) {
-                try {
-                    contentResolver.takePersistableUriPermission(
-                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
-                    )
-                } catch (_: Exception) {
-                    // 永続パーミッションが取得できない場合（非対応プロバイダ等）は無視
-                }
-                onFilePicked?.invoke(uri)
-            }
-        }
 
         val scroll = ScrollView(this)
         val root = LinearLayout(this).apply {
@@ -72,7 +31,7 @@ class OneQListActivity : AppCompatActivity() {
 
         // タイトル
         root.addView(TextView(this).apply {
-            text = "📋 一問一答一覧"
+            text = "📋 一問一答管理"
             textSize = 24f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.parseColor("#333333"))
@@ -80,26 +39,69 @@ class OneQListActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            lp.bottomMargin = 16
+            lp.bottomMargin = 12
             layoutParams = lp
         })
 
-        // 新規追加ボタン
-        root.addView(Button(this).apply {
+        // 上部ボタン行：新規追加 & ジャンル管理
+        val btnRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.bottomMargin = 12
+            layoutParams = lp
+        }
+        btnRow.addView(Button(this).apply {
             text = "➕ 新規追加"
-            textSize = 15f
+            textSize = 14f
             setTextColor(Color.WHITE)
             backgroundTintList = android.content.res.ColorStateList.valueOf(
                 Color.parseColor("#4CAF50")
             )
             val lp = LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+            )
+            lp.marginEnd = 8
+            layoutParams = lp
+            setPadding(16, 24, 16, 24)
+            setOnClickListener { showOneQDialog(null) }
+        })
+        btnRow.addView(Button(this).apply {
+            text = "🏷️ ジャンル管理"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                Color.parseColor("#9C27B0")
+            )
+            layoutParams = LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+            )
+            setPadding(16, 24, 16, 24)
+            setOnClickListener {
+                startActivity(Intent(this@OneQListActivity, OneQGenreActivity::class.java))
+            }
+        })
+        root.addView(btnRow)
+
+        // ジャンルフィルター（横スクロール）
+        genreFilterRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            lp.bottomMargin = 16
+        }
+        root.addView(HorizontalScrollView(this).apply {
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.bottomMargin = 12
             layoutParams = lp
-            setPadding(16, 28, 16, 28)
-            setOnClickListener { showOneQDialog(null) }
+            isHorizontalScrollBarEnabled = false
+            addView(genreFilterRow)
         })
 
         // 問題リストコンテナ
@@ -129,23 +131,62 @@ class OneQListActivity : AppCompatActivity() {
             setPadding(16, 28, 16, 28)
             setOnClickListener { finish() }
         })
-
-        refreshList()
     }
 
     override fun onResume() {
         super.onResume()
+        refreshGenreFilter()
         refreshList()
+    }
+
+    // ===== ジャンルフィルター更新 =====
+    private fun refreshGenreFilter() {
+        genreFilterRow.removeAllViews()
+        val genres = OneQGenreStorage.loadGenres(this)
+
+        // 選択中のジャンルが削除されていた場合はリセット
+        if (currentGenreFilter != "ALL" && !genres.contains(currentGenreFilter)) {
+            currentGenreFilter = "ALL"
+        }
+
+        val allFilters = listOf("ALL") + genres
+        allFilters.forEach { key ->
+            val label      = if (key == "ALL") "すべて" else key
+            val isSelected = key == currentGenreFilter
+            genreFilterRow.addView(Button(this).apply {
+                text = label
+                textSize = 13f
+                setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#555555"))
+                backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    if (isSelected) Color.parseColor("#4CAF50") else Color.parseColor("#DDDDDD")
+                )
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.marginEnd = 8
+                layoutParams = lp
+                setPadding(24, 16, 24, 16)
+                setOnClickListener {
+                    currentGenreFilter = key
+                    refreshGenreFilter()
+                    refreshList()
+                }
+            })
+        }
     }
 
     // ===== 一問一答リスト更新 =====
     private fun refreshList() {
         listContainer.removeAllViews()
-        val questions = QuestionStorage.loadQuestions(this)
+        val entries = OneQStorage.loadByGenre(this, currentGenreFilter)
 
-        if (questions.isEmpty()) {
+        if (entries.isEmpty()) {
             listContainer.addView(TextView(this).apply {
-                text = "追加された問題がありません。\n「新規追加」ボタンで問題を追加してください。"
+                text = if (currentGenreFilter == "ALL")
+                    "追加された問題がありません。\n「新規追加」ボタンで問題を追加してください。"
+                else
+                    "「${currentGenreFilter}」ジャンルの問題がありません。"
                 textSize = 13f
                 setTextColor(Color.parseColor("#888888"))
                 val lp = LinearLayout.LayoutParams(
@@ -160,7 +201,7 @@ class OneQListActivity : AppCompatActivity() {
         }
 
         listContainer.addView(TextView(this).apply {
-            text = "全 ${questions.size} 問"
+            text = "全 ${entries.size} 問"
             textSize = 12f
             setTextColor(Color.parseColor("#666666"))
             val lp = LinearLayout.LayoutParams(
@@ -171,13 +212,13 @@ class OneQListActivity : AppCompatActivity() {
             layoutParams = lp
         })
 
-        questions.forEachIndexed { index, question ->
-            addOneQRow(question, index + 1)
+        entries.forEachIndexed { index, entry ->
+            addEntryRow(entry, index + 1)
         }
     }
 
     // ===== 一問一答問題カード =====
-    private fun addOneQRow(question: Question, number: Int) {
+    private fun addEntryRow(entry: OneQEntry, number: Int) {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#E8F5E9"))
@@ -199,8 +240,9 @@ class OneQListActivity : AppCompatActivity() {
             )
         }
 
+        val genreLabel = if (entry.genre.isNotEmpty()) "【${entry.genre}】" else "【未設定】"
         headerRow.addView(TextView(this).apply {
-            text = "問$number　${question.examType.label}　${question.periodLabel}"
+            text = "問$number　$genreLabel"
             textSize = 11f
             setTextColor(Color.parseColor("#2E7D32"))
             layoutParams = LinearLayout.LayoutParams(
@@ -223,7 +265,7 @@ class OneQListActivity : AppCompatActivity() {
             lp.marginEnd = 6
             layoutParams = lp
             setPadding(16, 8, 16, 8)
-            setOnClickListener { showOneQDialog(question) }
+            setOnClickListener { showOneQDialog(entry) }
         })
 
         // 削除ボタン
@@ -240,7 +282,7 @@ class OneQListActivity : AppCompatActivity() {
                     .setTitle("削除確認")
                     .setMessage("この問題を削除しますか？")
                     .setPositiveButton("削除") { _, _ ->
-                        QuestionStorage.deleteQuestion(this@OneQListActivity, question.id)
+                        OneQStorage.delete(this@OneQListActivity, entry.id)
                         refreshList()
                     }
                     .setNegativeButton("キャンセル", null)
@@ -251,7 +293,7 @@ class OneQListActivity : AppCompatActivity() {
         card.addView(headerRow)
 
         card.addView(TextView(this).apply {
-            text = question.questionText
+            text = entry.question
             textSize = 13f
             setTextColor(Color.parseColor("#333333"))
             val lp = LinearLayout.LayoutParams(
@@ -263,12 +305,12 @@ class OneQListActivity : AppCompatActivity() {
             layoutParams = lp
         })
 
-        question.choices.forEachIndexed { index, choice ->
+        entry.choices.forEachIndexed { idx, choice ->
             card.addView(TextView(this).apply {
-                text = "${if (index == question.correctAnswerIndex) "✅" else "　"} ${index + 1}. $choice"
+                text = "${if (idx == entry.correctIndex) "✅" else "　"} ${idx + 1}. $choice"
                 textSize = 12f
                 setTextColor(
-                    if (index == question.correctAnswerIndex) Color.parseColor("#2E7D32")
+                    if (idx == entry.correctIndex) Color.parseColor("#2E7D32")
                     else Color.parseColor("#555555")
                 )
             })
@@ -278,7 +320,7 @@ class OneQListActivity : AppCompatActivity() {
     }
 
     // ===== 問題追加・編集ダイアログ =====
-    private fun showOneQDialog(existing: Question?) {
+    private fun showOneQDialog(existing: OneQEntry?) {
         val scrollDialog = ScrollView(this)
         val dialogView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -317,50 +359,30 @@ class OneQListActivity : AppCompatActivity() {
                 )
             }
 
-        // 試験種別選択
-        dialogView.addView(label("試験種別"))
-        val examTypes = ExamType.values()
-        val spinnerExam = Spinner(this).apply {
+        // ジャンル選択
+        dialogView.addView(label("ジャンル"))
+        val genres = OneQGenreStorage.loadGenres(this)
+        val genreOptions = listOf("（未設定）") + genres
+        val spinnerGenre = Spinner(this).apply {
             adapter = ArrayAdapter(
                 this@OneQListActivity,
                 android.R.layout.simple_spinner_dropdown_item,
-                examTypes.map { it.label }
+                genreOptions
             )
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        spinnerExam.setSelection(
-            examTypes.indexOfFirst { it == (existing?.examType ?: ExamType.ENGINEERING_A) }
-                .coerceAtLeast(0)
-        )
-        dialogView.addView(spinnerExam)
-
-        // 試験期選択
-        dialogView.addView(label("試験期"))
-        val termLabels = predefinedTerms.map { it.second }
-        val spinnerTerm = Spinner(this).apply {
-            adapter = ArrayAdapter(
-                this@OneQListActivity,
-                android.R.layout.simple_spinner_dropdown_item,
-                termLabels
-            )
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-        val initialTermLabel = existing?.term?.takeIf { it.isNotEmpty() }
-        val initialTermIdx = if (initialTermLabel != null)
-            termLabels.indexOfFirst { it == initialTermLabel }.coerceAtLeast(0)
-        else termLabels.size - 1
-        spinnerTerm.setSelection(initialTermIdx)
-        dialogView.addView(spinnerTerm)
+        val initialGenreIdx = genreOptions.indexOf(
+            existing?.genre?.takeIf { it.isNotEmpty() } ?: "（未設定）"
+        ).coerceAtLeast(0)
+        spinnerGenre.setSelection(initialGenreIdx)
+        dialogView.addView(spinnerGenre)
 
         // 問題文
         dialogView.addView(label("問題文"))
-        val etQuestion = editText("問題文を入力", existing?.questionText ?: "", multiLine = true)
+        val etQuestion = editText("問題文を入力", existing?.question ?: "", multiLine = true)
         dialogView.addView(etQuestion)
 
         // 選択肢①〜⑤
@@ -393,39 +415,13 @@ class OneQListActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
-        spinnerCorrect.setSelection(existing?.correctAnswerIndex ?: 0)
+        spinnerCorrect.setSelection(existing?.correctIndex ?: 0)
         dialogView.addView(spinnerCorrect)
 
         // 解説
         dialogView.addView(label("解説"))
         val etExplanation = editText("解説を入力", existing?.explanation ?: "", multiLine = true)
         dialogView.addView(etExplanation)
-
-        // 画像/PDF添付ボタン
-        dialogView.addView(label("画像/PDF添付（任意）"))
-        var attachedUriString = existing?.imageUriString ?: ""
-        val btnAttach = Button(this).apply {
-            text = if (attachedUriString.isEmpty()) "📎 画像/PDFを添付" else "📎 添付済（タップで変更）"
-            textSize = 13f
-            setTextColor(Color.WHITE)
-            backgroundTintList = android.content.res.ColorStateList.valueOf(
-                Color.parseColor("#FF7043")
-            )
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            setPadding(16, 20, 16, 20)
-        }
-        dialogView.addView(btnAttach)
-
-        btnAttach.setOnClickListener {
-            onFilePicked = { uri ->
-                attachedUriString = uri.toString()
-                btnAttach.text = "📎 添付済（タップで変更）"
-            }
-            pickFileLauncher.launch(arrayOf("image/*", "application/pdf"))
-        }
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "➕ 問題を追加" else "✏️ 問題を編集")
@@ -438,10 +434,6 @@ class OneQListActivity : AppCompatActivity() {
                 val c3    = etC3.text.toString().trim()
                 val c4    = etC4.text.toString().trim()
                 val exp   = etExplanation.text.toString().trim()
-                val selectedTermPair = predefinedTerms[spinnerTerm.selectedItemPosition]
-                val term  = selectedTermPair.second
-                val yr    = selectedTermPair.first
-                val selectedExamType = examTypes[spinnerExam.selectedItemPosition]
 
                 if (qText.isEmpty() || c0.isEmpty() || c1.isEmpty() ||
                     c2.isEmpty() || c3.isEmpty()) {
@@ -453,8 +445,8 @@ class OneQListActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                val choices = if (c4.isEmpty()) listOf(c0, c1, c2, c3)
-                              else listOf(c0, c1, c2, c3, c4)
+                val choices    = if (c4.isEmpty()) listOf(c0, c1, c2, c3)
+                                 else listOf(c0, c1, c2, c3, c4)
                 val correctIdx = spinnerCorrect.selectedItemPosition
                 if (correctIdx >= choices.size) {
                     Toast.makeText(
@@ -465,17 +457,18 @@ class OneQListActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                QuestionStorage.saveQuestion(this, Question(
-                    id                 = existing?.id ?: QuestionStorage.generateId(this),
-                    questionText       = qText,
-                    choices            = choices,
-                    correctAnswerIndex = correctIdx,
-                    explanation        = exp,
-                    examType           = selectedExamType,
-                    year               = yr,
-                    term               = term,
-                    imageUriString     = attachedUriString
+                val selectedGenre = genreOptions[spinnerGenre.selectedItemPosition]
+                    .let { if (it == "（未設定）") "" else it }
+
+                OneQStorage.save(this, OneQEntry(
+                    id           = existing?.id ?: OneQStorage.generateId(this),
+                    question     = qText,
+                    choices      = choices,
+                    correctIndex = correctIdx,
+                    explanation  = exp,
+                    genre        = selectedGenre
                 ))
+                refreshGenreFilter()
                 refreshList()
             }
             .setNegativeButton("キャンセル", null)
