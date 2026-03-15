@@ -37,13 +37,14 @@ object WordStorage {
                 val obj  = array.getJSONObject(i)
                 val qIds = obj.optJSONArray("questionIds") ?: JSONArray()
                 list.add(WordEntry(
-                    id          = obj.getLong("id"),
-                    title       = obj.getString("title"),
-                    content     = obj.getString("content"),
-                    examType    = obj.optString("examType", ""),
-                    category    = obj.optString("category", ""),
-                    isFormula   = obj.optBoolean("isFormula", false),
-                    questionIds = (0 until qIds.length()).map { qIds.getInt(it) }
+                    id            = obj.getLong("id"),
+                    title         = obj.getString("title"),
+                    content       = obj.getString("content"),
+                    examType      = obj.optString("examType", ""),
+                    category      = obj.optString("category", ""),
+                    isFormula     = obj.optBoolean("isFormula", false),
+                    questionIds   = (0 until qIds.length()).map { qIds.getInt(it) },
+                    pdfUriString  = obj.optString("pdfUriString", "")
                 ))
             }
             list
@@ -70,13 +71,14 @@ object WordStorage {
             val obj  = JSONObject()
             val qIds = JSONArray()
             e.questionIds.forEach { qIds.put(it) }
-            obj.put("id",          e.id)
-            obj.put("title",       e.title)
-            obj.put("content",     e.content)
-            obj.put("examType",    e.examType)
-            obj.put("category",    e.category)
-            obj.put("isFormula",   e.isFormula)
-            obj.put("questionIds", qIds)
+            obj.put("id",           e.id)
+            obj.put("title",        e.title)
+            obj.put("content",      e.content)
+            obj.put("examType",     e.examType)
+            obj.put("category",     e.category)
+            obj.put("isFormula",    e.isFormula)
+            obj.put("questionIds",  qIds)
+            obj.put("pdfUriString", e.pdfUriString)
             array.put(obj)
         }
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)

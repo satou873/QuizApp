@@ -7,5 +7,6 @@ data class WordEntry(
     var examType: String  = "",
     var category: String  = "",   // 区分（例："基礎理論"、"電波法の概要" など）
     var isFormula: Boolean = false, // 公式かどうか
-    var questionIds: List<Int> = emptyList()
+    var questionIds: List<Int> = emptyList(),
+    var pdfUriString: String = ""   // 添付PDFのURI（空文字 = 添付なし）
 )
