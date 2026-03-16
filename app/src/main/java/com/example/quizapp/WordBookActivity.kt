@@ -724,9 +724,18 @@ class WordBookActivity : AppCompatActivity() {
         }
         dialogView.addView(etIds)
 
-        // PDF/画像添付ボタン
+        // PDF/画像添付ボタン＋削除ボタン
         dialogView.addView(lbl("PDF/画像添付"))
         var attachedPdfUriString = existing?.pdfUriString ?: ""
+
+        val pdfButtonRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
         val btnAttach = Button(this).apply {
             text = if (attachedPdfUriString.isEmpty()) "📎 PDF/画像を添付" else "📎 添付済（タップで変更）"
             textSize = 13f
@@ -734,21 +743,45 @@ class WordBookActivity : AppCompatActivity() {
             backgroundTintList = android.content.res.ColorStateList.valueOf(
                 Color.parseColor("#FF7043")
             )
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            lp.marginEnd = 8
+            layoutParams = lp
+            setPadding(16, 20, 16, 20)
+        }
+
+        val btnDeletePdf = Button(this).apply {
+            text = "🗑️ 削除"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                Color.parseColor("#9E9E9E")
+            )
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             setPadding(16, 20, 16, 20)
+            visibility = if (attachedPdfUriString.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
         }
-        dialogView.addView(btnAttach)
 
         btnAttach.setOnClickListener {
             onFilePicked = { uri ->
                 attachedPdfUriString = uri.toString()
                 btnAttach.text = "📎 添付済（タップで変更）"
+                btnDeletePdf.visibility = android.view.View.VISIBLE
             }
             pickFileLauncher.launch(arrayOf("*/*"))
         }
+
+        btnDeletePdf.setOnClickListener {
+            attachedPdfUriString = ""
+            btnAttach.text = "📎 PDF/画像を添付"
+            btnDeletePdf.visibility = android.view.View.GONE
+        }
+
+        pdfButtonRow.addView(btnAttach)
+        pdfButtonRow.addView(btnDeletePdf)
+        dialogView.addView(pdfButtonRow)
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "➕ 新規登録" else "✏️ 編集")

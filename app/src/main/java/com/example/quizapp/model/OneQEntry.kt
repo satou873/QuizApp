@@ -6,5 +6,6 @@ data class OneQEntry(
     var choices: List<String>,
     var correctIndex: Int,
     var explanation: String = "",
-    var genre: String = ""
+    var genre: String = "",
+    var pdfUriString: String = ""
 )
