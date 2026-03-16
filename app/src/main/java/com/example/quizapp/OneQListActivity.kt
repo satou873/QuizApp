@@ -4,10 +4,13 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.widget.*
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.quizapp.model.OneQEntry
 
@@ -17,8 +20,26 @@ class OneQListActivity : AppCompatActivity() {
     private lateinit var genreFilterRow: LinearLayout
     private var currentGenreFilter: String = "ALL"
 
+    // ファイルピッカー（PDF添付）
+    private var onFilePicked: ((Uri) -> Unit)? = null
+    private lateinit var pickFileLauncher: ActivityResultLauncher<Array<String>>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ファイルピッカーの登録（onCreateで呼ぶ必要あり）
+        pickFileLauncher = registerForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            if (uri != null) {
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (_: Exception) {}
+                onFilePicked?.invoke(uri)
+            }
+        }
 
         val scroll = ScrollView(this)
         val root = LinearLayout(this).apply {
@@ -316,6 +337,42 @@ class OneQListActivity : AppCompatActivity() {
             })
         }
 
+        // PDF添付済みの場合は「PDFを見る」ボタンを表示
+        if (entry.pdfUriString.isNotEmpty()) {
+            card.addView(Button(this).apply {
+                text = "📄 PDFを見る"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(
+                    Color.parseColor("#E53935")
+                )
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.topMargin = 8
+                layoutParams = lp
+                setPadding(20, 12, 20, 12)
+                setOnClickListener {
+                    try {
+                        val uri = Uri.parse(entry.pdfUriString)
+                        val mimeType = contentResolver.getType(uri) ?: "application/pdf"
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, mimeType)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(Intent.createChooser(intent, "ファイルを開くアプリを選択"))
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            this@OneQListActivity,
+                            "ファイルを開くアプリが見つかりません",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            })
+        }
+
         listContainer.addView(card)
     }
 
@@ -423,6 +480,65 @@ class OneQListActivity : AppCompatActivity() {
         val etExplanation = editText("解説を入力", existing?.explanation ?: "", multiLine = true)
         dialogView.addView(etExplanation)
 
+        // PDF添付ボタン＋削除ボタン
+        dialogView.addView(label("PDF添付"))
+        var attachedPdfUriString = existing?.pdfUriString ?: ""
+
+        val pdfButtonRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val btnAttach = Button(this).apply {
+            text = if (attachedPdfUriString.isEmpty()) "📎 PDFを添付" else "📎 添付済（タップで変更）"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                Color.parseColor("#FF7043")
+            )
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            lp.marginEnd = 8
+            layoutParams = lp
+            setPadding(16, 20, 16, 20)
+        }
+
+        val btnDeletePdf = Button(this).apply {
+            text = "🗑️ 削除"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                Color.parseColor("#9E9E9E")
+            )
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setPadding(16, 20, 16, 20)
+            visibility = if (attachedPdfUriString.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        }
+
+        btnAttach.setOnClickListener {
+            onFilePicked = { uri ->
+                attachedPdfUriString = uri.toString()
+                btnAttach.text = "📎 添付済（タップで変更）"
+                btnDeletePdf.visibility = android.view.View.VISIBLE
+            }
+            pickFileLauncher.launch(arrayOf("*/*"))
+        }
+
+        btnDeletePdf.setOnClickListener {
+            attachedPdfUriString = ""
+            btnAttach.text = "📎 PDFを添付"
+            btnDeletePdf.visibility = android.view.View.GONE
+        }
+
+        pdfButtonRow.addView(btnAttach)
+        pdfButtonRow.addView(btnDeletePdf)
+        dialogView.addView(pdfButtonRow)
+
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "➕ 問題を追加" else "✏️ 問題を編集")
             .setView(scrollDialog)
@@ -466,7 +582,8 @@ class OneQListActivity : AppCompatActivity() {
                     choices      = choices,
                     correctIndex = correctIdx,
                     explanation  = exp,
-                    genre        = selectedGenre
+                    genre        = selectedGenre,
+                    pdfUriString = attachedPdfUriString
                 ))
                 refreshGenreFilter()
                 refreshList()

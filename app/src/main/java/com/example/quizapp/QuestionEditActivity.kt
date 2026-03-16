@@ -568,9 +568,18 @@ class QuestionEditActivity : AppCompatActivity() {
         val etExplanation = editText("解説を入力", existing?.explanation ?: "", multiLine = true)
         dialogView.addView(etExplanation)
 
-        // 画像/PDF添付ボタン
+        // 画像/PDF添付ボタン＋削除ボタン
         dialogView.addView(label("画像/PDF添付"))
         var attachedUriString = existing?.imageUriString ?: ""
+
+        val pdfButtonRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
         val btnAttach = Button(this).apply {
             text = if (attachedUriString.isEmpty()) "📎 画像/PDFを添付" else "📎 添付済（タップで変更）"
             textSize = 13f
@@ -578,21 +587,45 @@ class QuestionEditActivity : AppCompatActivity() {
             backgroundTintList = android.content.res.ColorStateList.valueOf(
                 Color.parseColor("#FF7043")
             )
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            lp.marginEnd = 8
+            layoutParams = lp
+            setPadding(16, 20, 16, 20)
+        }
+
+        val btnDeleteAttach = Button(this).apply {
+            text = "🗑️ 削除"
+            textSize = 13f
+            setTextColor(Color.WHITE)
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                Color.parseColor("#9E9E9E")
+            )
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             setPadding(16, 20, 16, 20)
+            visibility = if (attachedUriString.isEmpty()) View.GONE else View.VISIBLE
         }
-        dialogView.addView(btnAttach)
 
         btnAttach.setOnClickListener {
             onFilePicked = { uri ->
                 attachedUriString = uri.toString()
                 btnAttach.text = "📎 添付済（タップで変更）"
+                btnDeleteAttach.visibility = View.VISIBLE
             }
             pickFileLauncher.launch(arrayOf("*/*"))
         }
+
+        btnDeleteAttach.setOnClickListener {
+            attachedUriString = ""
+            btnAttach.text = "📎 画像/PDFを添付"
+            btnDeleteAttach.visibility = View.GONE
+        }
+
+        pdfButtonRow.addView(btnAttach)
+        pdfButtonRow.addView(btnDeleteAttach)
+        dialogView.addView(pdfButtonRow)
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "➕ 問題を追加" else "✏️ 問題を編集")

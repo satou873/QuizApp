@@ -37,7 +37,8 @@ object OneQStorage {
                     choices      = (0 until ca.length()).map { ca.getString(it) },
                     correctIndex = obj.getInt("correctIndex"),
                     explanation  = obj.optString("explanation", ""),
-                    genre        = obj.optString("genre", "")
+                    genre        = obj.optString("genre", ""),
+                    pdfUriString = obj.optString("pdfUriString", "")
                 )
             }
         } catch (e: Exception) { emptyList() }
@@ -72,6 +73,7 @@ object OneQStorage {
             obj.put("correctIndex", e.correctIndex)
             obj.put("explanation",  e.explanation)
             obj.put("genre",        e.genre)
+            obj.put("pdfUriString", e.pdfUriString)
             arr.put(obj)
         }
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
