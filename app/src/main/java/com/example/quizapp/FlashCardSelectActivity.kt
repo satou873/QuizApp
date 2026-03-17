@@ -21,7 +21,8 @@ class FlashCardSelectActivity : AppCompatActivity() {
         "空中線・給電線",
         "電波伝搬",
         "電源",
-        "測定"
+        "測定",
+        "その他"
     )
 
     // 法規カテゴリ
