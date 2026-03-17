@@ -38,7 +38,7 @@ class WordBookActivity : AppCompatActivity() {
     private val engineeringCategories = listOf(
         "多重通信システムの概要", "基礎理論", "変復調", "無線送受信装置",
         "多重通信システム", "中継方式", "レーダー", "空中線・給電線",
-        "電波伝搬", "電源", "測定"
+        "電波伝搬", "電源", "測定", "その他"
     )
 
     // ===== 法規カテゴリ =====

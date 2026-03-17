@@ -8,9 +8,16 @@ object OneQGenreStorage {
     private const val PREF_NAME  = "oneq_prefs"
     private const val KEY_GENRES = "oneq_genres"
 
+    private val DEFAULT_GENRES = listOf("その他")
+
     fun loadGenres(context: Context): List<String> {
-        val json = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_GENRES, null) ?: return emptyList()
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val json  = prefs.getString(KEY_GENRES, null)
+        if (json == null) {
+            // 初回アクセス時はデフォルトジャンルを保存して返す
+            saveGenres(context, DEFAULT_GENRES)
+            return DEFAULT_GENRES
+        }
         return try {
             val arr = JSONArray(json)
             (0 until arr.length()).map { arr.getString(it) }
